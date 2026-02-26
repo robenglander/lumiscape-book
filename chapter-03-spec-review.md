@@ -1,4 +1,4 @@
-# Chapter 2: Writing Specs That Are Actually Contracts
+# Chapter 3: Writing Specs That Are Actually Contracts
 
 ## The Problem With Engineer-Written Specs
 
@@ -24,15 +24,11 @@ LUM-ENG-WD-001: Given a withdrawal request where requestedAmount > account.balan
 throw InsufficientFundsException with available balance in the exception detail field.
 
 LUM-ENG-WD-002: Given a TRADITIONAL_IRA account where the account holder age < 59.5,
-apply a 10% early withdrawal penalty to the taxable portion. The 59.5 threshold is
-a hardcoded IRS constant, not a configuration parameter.
+apply a 10% early withdrawal penalty to the taxable portion. The 59.5 threshold is a hardcoded IRS constant, not a configuration parameter.
 
-LUM-ENG-WD-003: Given a null accountType, throw ValidationException with error code
-MISSING_ACCOUNT_TYPE before any withdrawal calculation begins.
+LUM-ENG-WD-003: Given a null accountType, throw ValidationException with error code MISSING_ACCOUNT_TYPE before any withdrawal calculation begins.
 
-LUM-ENG-WD-004: Given a trust account withdrawal, apply trust distribution rules
-as defined in LUM-ENG-TR-001. Trust rules take precedence over standard withdrawal
-logic but may not override RMD minimums.
+LUM-ENG-WD-004: Given a trust account withdrawal, apply trust distribution rules as defined in LUM-ENG-TR-001. Trust rules take precedence over standard withdrawal logic but may not override RMD minimums.
 ```
 
 Four behaviors the narrative conflated into one paragraph. Each has a behavior ID. Each is testable: pass `requestedAmount > account.balance`, assert `InsufficientFundsException` is thrown with the right field populated. Pass `age = 58`, verify the 10% penalty is applied. Pass `accountType = null`, assert the specific error code. None of those tests are writable from the narrative paragraph, because the narrative paragraph doesn't specify any of that.

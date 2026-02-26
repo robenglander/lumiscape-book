@@ -1,28 +1,29 @@
-# Chapter 7: Implementing Under Frozen Contracts
+# Chapter 9: Implementing Under Frozen Contracts
 
 ## The Transition
 
-Five modes of validation, and now the specs are frozen — behavioral contracts established, test suites designed, engines validated for semantic consistency. Time to write code. But the transition from spec author to implementer is not automatic, and it changes Claude's role in a way most engineers underestimate until they get it wrong.
+Seven modes of specification, review, validation, and test generation, and now the specs are frozen, the full test suite exists and fails, and both engines have been validated for semantic consistency. Time to write code. But the transition from test author to implementer is not automatic, and it changes Claude's role in a way most engineers underestimate until they get it wrong.
 
 ---
 **`/spec-execution` instructions — §PREREQUISITE — SPEC FREEZE VERIFICATION:**
 
 ```
-Before any phase begins, Claude must verify:
+Before any implementation begins, verify ALL of the following:
 
-lumiscape/engineering/spec-freeze.lock
+1. Spec freeze lock: engineering/spec-freeze.lock
+   If absent: stop. Implementation cannot begin until the spec is frozen.
 
-If this file does not exist, Claude must:
+2. Test gen report: engineering/artifacts/test-gen-report.md
+   If absent: stop. Implementation cannot begin until spec-test-gen has completed.
 
-- stop immediately
-- not proceed with any phase
-- inform the user that spec-execution cannot begin until the spec freeze is confirmed and the lock file is present
-
-The lock file is the gate. No lock file = no execution.
+3. Tests are red: confirm the test suite is failing.
+   If tests already pass, the tests are not testing anything real. Stop and investigate.
 ```
 ---
 
-As a spec author and reviewer, Claude's job is to find gaps, flag ambiguities, and ensure completeness. Interpretation is appropriate — you are helping the engineer express intent precisely. When you see "compute the applicable tax," you ask whether that means the marginal rate, the effective rate, or the total dollar amount, and you push until the spec is clear. Judgment calls are not just allowed, they are required — when two reasonable interpretations exist, you ask which one the engineer intends. You are a thought partner, sharpening the spec.
+Mode 8 gates on two artifacts: the spec freeze lock and the test-gen report from Mode 7. The third prerequisite is behavioral: the tests must actually be failing. If the tests already pass before any production code is written, they are not real tests.
+
+As a spec author, reviewer, and test writer, Claude's job is to find gaps, flag ambiguities, and ensure completeness. Interpretation is appropriate — you are helping the engineer express intent precisely. When you see "compute the applicable tax," you ask whether that means the marginal rate, the effective rate, or the total dollar amount, and you push until the spec is clear. Judgment calls are not just allowed, they are required — when two reasonable interpretations exist, you ask which one the engineer intends. You are a thought partner, sharpening the spec.
 
 As an implementer, none of that applies. The specs are contracts. Interpretation is not appropriate because the spec says what it means and means what it says. Judgment calls are not allowed because every behavioral decision belongs to the spec, not to the implementer. If the spec is ambiguous, that ambiguity should have been caught in review, and if it wasn't, the right response is a formal revision request — not a quiet decision.
 
@@ -38,25 +39,16 @@ This is the entire justification for the `/spec-execution` discipline. Not burea
 
 ```mermaid
 flowchart TD
-    LOCK["spec-freeze.lock\n(prerequisite gate)"]
-    LOCK --> P1["Phase 1\nFreeze Spec Layer\n(specs are read-only)"]
-    P1 --> P2["Phase 2\nGlobal Coverage Audit\n(every behavior ID has a test?)"]
-    P2 --> P3["Phase 3\nCross-Spec Dependency Mapping\n(build dep graph)"]
-    P3 --> P4["Phase 4\nAcceptance Test Finalization\n(behavioral authority)"]
-    P4 --> P5["Phase 5\nInvariant Test Generation\n(correctness anchors)"]
-    P5 --> P6["Phase 6\nUnit Test Generation\n(implementation stability)"]
-    P6 --> P7["Phase 7\nImplementation Discipline\n(write production code)"]
-    P7 --> P8["Phase 8\nImplementation Support Loop\n(module checklist + coding)"]
-    P8 --> P9["Phase 9\nTraceability Generation\n(req → test → code → unit test)"]
-    P9 --> P10["Phase 10\nMutation Resilience\n(harden tests)"]
-    P10 --> P11["Phase 11\nCI Enforcement\n(authority, not suggestion)"]
-    P11 --> TM["traceability-matrix.md\n(audit backbone)"]
+    LOCK["spec-freeze.lock\n+ test-gen-report.md\n(prerequisite gates)"]
+    LOCK --> P1["Freeze Spec Layer\n(specs are read-only)"]
+    P1 --> DISC["Implementation Discipline\n(architectural separation,\ndeterminism, state, IO)"]
+    DISC --> CHECK["Pre-Implementation\nModule Checklist\n(types, deps, consistency)"]
+    CHECK --> LOOP["Implementation Loop\n(red → green → refactor)"]
+    LOOP --> DONE["All tests green\n→ Mode 8b (fidelity audit)"]
 
     style LOCK fill:#fef3c7
-    style P4 fill:#dcfce7
-    style P5 fill:#dcfce7
-    style P9 fill:#dbeafe
-    style TM fill:#f0fdf4
+    style LOOP fill:#dcfce7
+    style DONE fill:#f0fdf4
 ```
 
 ## Immutable Specs — The Four Prohibitions
@@ -277,554 +269,24 @@ private final TreeMap<AccountId, WithdrawalResult> withdrawalResults = new TreeM
 
 The distinction between STOP and JUDGMENT conflicts is consistently: does resolving it require a behavioral decision that belongs to the engineer, or is it a surface representation difference that preserves the spec's behavioral intent? If behavioral — stop. If representational — resolve and document.
 
-## Phase 2: Global Coverage Audit
+## The Test Suite Is Already Here
+
+By the time Mode 8 begins, the test suite is complete. Mode 7 (spec-test-gen) generated it: acceptance tests from behavioral contracts, invariant tests from mathematical properties, unit tests for internal logic. Every behavior ID has at least one test. Every test contains real assertions, not placeholders. Every test fails. That is the starting condition.
+
+The implementation loop is structural TDD at the system scale:
+
+1. Confirm tests are failing (red)
+2. Write implementation
+3. Confirm tests pass (green)
+4. Refactor under green
+5. Iterate until all AT IDs pass
+
+The order is non-negotiable. If you write code before you have failing tests, you end up with tests that describe what the code does rather than what the spec requires. The tests become a mirror, not a contract. Mode 7 prevents this by generating the full test suite before Mode 8 starts. Chapter 8 covers test generation in detail.
+
+## Implementation Discipline
 
 ---
-**`/spec-execution` instructions — §PHASE 2 — GLOBAL COVERAGE AUDIT:**
-
-```
-Claude must verify across all specs:
-
-- every Core Behavior ID appears in Acceptance Tests
-- validation rules exist per spec
-- Out-of-Scope sections are explicit
-- no deferral language exists
-- no behavioral gaps remain
-
-Output:
-
-- PASS / FAIL per spec
-- consolidated gap list
-
-No implementation begins until PASS.
-```
----
-
-Before any code is written, Claude audits the entire spec surface against the acceptance test suite and verifies that every Core Behavior ID has at least one test. This is not a redundant check from the review phase. Specs evolve during the review cycle. A behavior added to LUM-ENG-021 after the acceptance tests were generated for that spec will have no corresponding test. The coverage audit is the last checkpoint before implementation begins.
-
-The audit produces two outputs: a PASS or FAIL for each spec, and for any FAIL, the specific behavior IDs that lack test coverage. Implementation does not begin until every spec passes.
-
-Here is what a failed coverage audit looks like:
-
-```
-COVERAGE AUDIT — LUM-ENG-021 (Accumulators)
-
-FAIL: The following Behavior IDs have no corresponding acceptance test:
-
-  LUM-ENG-021-CB-007: healthcare accumulator tracks IRMAA tier transition
-    (added to spec on 2026-02-15, after initial test generation)
-
-  LUM-ENG-021-CB-008: healthcare accumulator includes Medicare Part B premium
-    (added to spec on 2026-02-15, after initial test generation)
-
-Required action: Generate acceptance tests for CB-007 and CB-008 before
-implementation of LUM-ENG-021 proceeds. Tests must reference behavior IDs,
-cite existing-art sources (IRS IRMAA schedule, CMS Medicare premium schedule),
-define measurable pass/fail criteria, and use only public API.
-
-All other Behavior IDs in LUM-ENG-021 have corresponding tests. LUM-ENG-021
-is blocked pending test additions.
-```
-
-The sequencing — coverage audit before implementation — ensures that when a developer writes production code for LUM-ENG-021, the tests that will verify their implementation are already in place. Writing code and tests simultaneously defeats the behavioral contract: if you write the tests after the code, you tend to write tests that reflect what the code does rather than what the spec requires. The tests become a description of the implementation, not a verification of the contract.
-
-## Phase 3: Cross-Spec Dependency Mapping
-
----
-**`/spec-execution` instructions — §PHASE 3 — CROSS-SPEC DEPENDENCY MAPPING:**
-
-```
-Claude constructs a dependency model:
-
-- spec → subsystem mapping
-- spec outputs used as inputs elsewhere
-- overlapping responsibilities
-- semantic alignment across specs
-
-Claude must NOT modify specs.
-
-Output is:
-
-Dependency Map Only
-```
----
-
-Phase 3 constructs a dependency model of the entire spec surface: which spec depends on which other spec, what outputs of one component serve as inputs to another, where responsibilities overlap, and in what order components should be implemented. This phase produces a map only — Claude does not modify specs based on what it finds in Phase 3.
-
-The dependency map answers four questions. Which components can be implemented in parallel because they have no shared dependencies? Which must be implemented before others because they produce types that other components consume? Which have overlapping responsibilities that need to be reconciled before either is implemented? Which pairs of specs reference the same type with potentially different expectations about its structure?
-
-Here is a concrete excerpt from a dependency map for the retirement distribution subsystem:
-
-```
-DEPENDENCY MAP — Retirement Distribution Subsystem
-
-LUM-DTO-030 (RetirementDistributionConfig)
-  Consumed by: LUM-ENG-015 (RetirementWithdrawalCalculator)
-  Dependencies: LUM-DTO-001 (PersonConfig), LUM-DTO-002 (AccountConfig)
-  Status: leaf node — no spec dependencies outside lumiscape-dto
-
-LUM-ENG-015 (RetirementWithdrawalCalculator)
-  Inputs: RetirementDistributionConfig (LUM-DTO-030), RmdDivisorTable (LUM-DAT-006)
-  Outputs: RetirementDistributionResult
-  Consumed by: LUM-ENG-021 (accumulators), LUM-ENG-023 (error handling)
-  Note: RetirementDistributionResult not defined in LUM-DTO — verify definition location
-
-LUM-ENG-021 (Accumulators)
-  Inputs: RetirementDistributionResult (LUM-ENG-015), YearInputs (LUM-DTO-018)
-  Outputs: YearMetrics
-  Consumed by: LUM-SVC-004 (simulation orchestration), LUM-DTO-039 (results aggregation)
-
-LUM-SVC-004 (Simulation Orchestration)
-  Inputs: YearMetrics (LUM-ENG-021), StochasticResults (LUM-DTO-039)
-  Outputs: SimulationResponse (LUM-API-004)
-
-IMPLEMENTATION ORDER:
-  1. LUM-DTO-030 (no dependencies)
-  2. LUM-ENG-015 (depends on LUM-DTO-030)
-  3. LUM-ENG-021 (depends on LUM-ENG-015)
-  4. LUM-SVC-004 (depends on LUM-ENG-021)
-
-FLAGGED GAPS:
-  - RetirementDistributionResult: referenced in LUM-ENG-015 and LUM-ENG-021
-    but not found in any LUM-DTO spec. If defined in LUM-ENG, it must be in
-    a spec for lumiscape-engine. If defined in LUM-DTO, spec is missing.
-    → Potential MISSING-DEFINITION — flag for Phase 8 checklist.
-```
-
-The gap flagged at the end — RetirementDistributionResult not found in any spec — is exactly the kind of finding that prevents a wasted implementation cycle. If implementation started without this map, the developer working on LUM-ENG-015 would create the RetirementDistributionResult class with whatever fields seemed necessary, and the developer working on LUM-ENG-021 would assume different fields, and the mismatch would surface at integration. Finding it in Phase 3 means it gets resolved in a spec revision before either developer writes a line of code.
-
-## Phase 4: Acceptance Tests — Translating Contracts to Executable Verification
-
----
-**`/spec-execution` instructions — §PHASE 4 — ACCEPTANCE TEST FINALIZATION:**
-
-```
-Claude generates executable acceptance test suites using black-box public APIs only.
-
-Every test must:
-
-- reference Behavior IDs
-- cite the existing-art property and source
-- define a measurable metric and explicit pass/fail criteria
-- include deterministic degenerate and negative tests
-
-No behavior left untested.
-
-Produce a coverage matrix mapping Behavior IDs to tests.
-
-Acceptance tests become:
-
-BEHAVIORAL AUTHORITY
-```
----
-
-Acceptance tests are the primary behavioral authority. They are black-box: they invoke only public APIs, make no assumptions about internal structure, and are insulated from internal refactoring as long as public behavior is preserved. They reference Behavior IDs from the spec so that anyone reading a failing test can trace it directly to the behavioral requirement it verifies. They cite existing-art sources so that expected values are independently verifiable.
-
-Here is a complete acceptance test specification for an RMD calculation behavior:
-
-```java
-/**
- * Behavior: LUM-ENG-015-CB-001
- * Description: Compute RMD for traditional IRA holder at age 73
- * Property: RMD formula — balance divided by IRS Uniform Lifetime Table divisor
- * Existing-art source: IRS Publication 590-B (2022 revision), Table III (Uniform
- *   Lifetime Table), age 73: life expectancy factor = 26.5
- * Arithmetic: $500,000 / 26.5 = $18,867.92 → rounded to nearest cent = $18,867.92
- * Pass criterion: result.rmdAmount() == 1_886_792L (cents)
- * Fail criterion: any other value, or exception thrown
- */
-@Test
-void givenAge73IraBalance500000_whenComputeWithdrawals_thenRmdIs18867Dollars92Cents() {
-    // Arrange
-    RetirementDistributionConfig config = RetirementDistributionConfig.builder()
-        .account(TraditionalIraConfig.builder()
-            .balance(50_000_000L)       // $500,000.00 in cents
-            .accountId(AccountId.of("ira-primary"))
-            .build())
-        .person(PersonConfig.builder()
-            .birthDate(LocalDate.of(1951, 6, 15))   // turns 73 in 2024
-            .personId(PersonId.primary())
-            .build())
-        .taxYear(2024)
-        .build();
-
-    // Act
-    RetirementDistributionResult result = calculator.compute(config);
-
-    // Assert
-    assertThat(result.rmdAmount())
-        .as("RMD for age-73 IRA holder with $500,000 balance per IRS Pub 590-B Table III")
-        .isEqualTo(1_886_792L);   // $18,867.92 in cents
-}
-```
-
-Every element of this test is deliberate. The Javadoc comment cites the behavior ID (LUM-ENG-015-CB-001) to establish traceability. It cites the existing-art source with enough specificity to allow independent verification — not just "IRS Publication 590-B" but "2022 revision, Table III, age 73, factor 26.5." It shows the arithmetic so a future reader can verify the expected value without running the test. Pass and fail criteria are stated explicitly.
-
-The test itself uses only public APIs: `RetirementDistributionConfig.builder()`, `calculator.compute()`, `result.rmdAmount()`. It does not reach into internal state. It does not call private methods. It does not depend on how the calculator stores intermediate results. If the implementation is refactored to use a different internal representation, this test is unaffected as long as `result.rmdAmount()` returns the same value.
-
-The assertion uses `.as()` to provide a failure message that includes the financial context. When this test fails in CI, the failure message reads: "RMD for age-73 IRA holder with $500,000 balance per IRS Pub 590-B Table III — expected 1886792 but was 1876792." The developer reading the failure knows immediately what behavior is being tested and where to look in the IRS publication to verify the expected value.
-
-Amounts are in cents (long integers). This is the project's money convention, and it is non-negotiable in tests. Floating-point money amounts are a correctness liability: IEEE 754 double cannot represent $18,867.92 exactly. Cent-denominated long integers are exact. The test's expected value 1_886_792L is exactly $18,867.92 with no rounding ambiguity.
-
-## Phase 5: Invariant Tests — Mathematical Anchors Independent of Spec
-
----
-**`/spec-execution` instructions — §PHASE 5 — INVARIANT TEST GENERATION:**
-
-```
-Claude generates system-level invariants independent of specs.
-
-Examples:
-
-- balances never negative
-- withdrawals reduce balances
-- taxes non-negative
-- accounting identity holds
-- monotonicity rules
-- conservation rules
-
-Invariant tests become:
-
-CORRECTNESS ANCHORS
-```
----
-
-Invariant tests verify properties that must hold regardless of what the spec says. They are not derived from behavioral requirements — they come from mathematics, accounting identities, and physical constraints. A simulation that violates an accounting identity is provably wrong regardless of spec authority.
-
-The accounting identity invariant is the most fundamental:
-
-```java
-/**
- * Invariant: Accounting Identity
- * ending_balance = starting_balance + contributions + returns - withdrawals - taxes
- * This is a mathematical identity — no spec is required to specify it.
- * Tolerance: 1 cent for rounding across multiple operations.
- */
-@Test
-void givenAnyScenario_whenRunSimulation_thenAccountingIdentityHoldsEveryYear() {
-    SimulationResult result = engine.run(standardTestScenario());
-
-    for (YearResult year : result.yearlyResults()) {
-        long expectedEnding = year.startingBalance()
-            + year.contributions()
-            + year.investmentReturns()
-            - year.withdrawals()
-            - year.taxes();
-
-        assertThat(year.endingBalance())
-            .as("Accounting identity violated in year %d: expected %d, got %d",
-                year.year(), expectedEnding, year.endingBalance())
-            .isCloseTo(expectedEnding, within(1L));
-    }
-}
-```
-
-The tolerance of 1 cent is not a concession to imprecision — it is an acknowledgment that when you sum multiple rounding operations each rounded to the nearest cent, the accumulated error can be at most 1 cent. Any deviation beyond 1 cent is a bug, not rounding.
-
-Additional invariants to generate for a retirement simulation engine:
-
-Account balances must be non-negative in every year (you cannot withdraw from an empty account and end with a negative balance; the simulation must detect exhaustion):
-
-```java
-@Test
-void givenAnyScenario_whenRunSimulation_thenNoAccountGoesNegative() {
-    SimulationResult result = engine.run(standardTestScenario());
-
-    for (YearResult year : result.yearlyResults()) {
-        for (AccountResult account : year.accountResults()) {
-            assertThat(account.endingBalance())
-                .as("Account %s went negative in year %d",
-                    account.accountId(), year.year())
-                .isGreaterThanOrEqualTo(0L);
-        }
-    }
-}
-```
-
-Tax amounts must be non-negative (tax refunds are not modeled as negative taxes — they are a separate concept):
-
-```java
-@Test
-void givenAnyScenario_whenRunSimulation_thenTaxesNonNegativeEveryYear() {
-    SimulationResult result = engine.run(standardTestScenario());
-
-    for (YearResult year : result.yearlyResults()) {
-        assertThat(year.taxes())
-            .as("Negative tax computed in year %d", year.year())
-            .isGreaterThanOrEqualTo(0L);
-    }
-}
-```
-
-These invariants are not in any spec. They don't need to be. They are mathematical facts. A simulation that violates them is wrong by definition.
-
-## Phase 6: Unit Tests — Complete Coverage of the Testing Craft
-
----
-**`/spec-execution` instructions — §PHASE 6 — UNIT TEST GENERATION (IMPLEMENTATION STABILITY):**
-
-```
-Claude writes unit tests for internal logic.
-
-Unit tests:
-
-- white-box
-- deterministic
-- fast
-- mutation-resistant
-- edge-case focused
-
-Targets:
-
-- pure calculators (tax, RMD, interest, withdrawal math)
-- rounding/precision utilities
-- validation and error handling
-- boundary logic (age thresholds, bracket edges)
-- state transitions (per-year updates)
-- parsing/validation helpers
-- small deterministic orchestration utilities
-
-Unit tests must NOT:
-
-- duplicate acceptance tests
-- target end-to-end scenarios (those are acceptance/integration tests)
-- target Monte Carlo distribution correctness (those are Monte Carlo validation tests)
-- rely on IO, time, randomness, or global state
-- include performance benchmarks
-
-Unit tests protect:
-
-IMPLEMENTATION STABILITY
-
-## Required Practices
-
-### Mutation Resistance
-
-Write tests so that common mutations fail:
-
-- operator flips (+ ↔ −, * ↔ /)
-- comparison flips (< ↔ <=, > ↔ >=)
-- off-by-one changes
-- removed guards (null/empty/bounds checks)
-- swapped branches in if/else
-- wrong rounding mode
-
-If a test would still pass after one of these changes, strengthen it.
-
-## Tooling Defaults
-
-Unless the project specifies otherwise:
-
-- JUnit 5
-- AssertJ (if available) or standard JUnit assertions
-- Mockito only when unavoidable (prefer pure tests)
-- No shared mutable fixtures across tests
-
-## Stop Conditions
-
-If a unit test would require randomness, time, IO, or system integration:
-
-Stop. Request that it be written as an integration/acceptance test instead.
-```
----
-
-Unit tests are white-box, deterministic, fast, and mutation-resistant. They test internal logic at the method level, they run without infrastructure (no database, no network, no filesystem), and they are designed to fail when the production logic changes in a way that alters behavior. This section covers every required practice in depth.
-
-### Mutation Resistance — The Core Testing Mindset
-
-For every test you write, ask: "what single change to the production code could cause this test to still pass while the behavior is wrong?" If you can find such a change, the test is weak.
-
-Consider a test for the RMD eligibility check:
-
-**Weak version:**
-
-```java
-@Test
-void givenAge74_whenCheckRmdEligibility_thenEligible() {
-    assertThat(calculator.isRmdEligible(74)).isTrue();
-}
-```
-
-This test passes with the correct implementation: `return age >= 73`. It also passes with a mutation that changes the condition to `return age >= 74`, because 74 still satisfies `>= 74`. The off-by-one mutation survives. Any user who turns 73 will be incorrectly excluded from RMD eligibility, and no test catches it.
-
-**Stronger version:**
-
-```java
-@Test
-void givenAge72_whenCheckRmdEligibility_thenNotEligible() {
-    assertThat(calculator.isRmdEligible(72)).isFalse();
-}
-
-@Test
-void givenAge73_whenCheckRmdEligibility_thenEligible() {
-    // This is the critical boundary — the mutation age >= 74 fails HERE
-    assertThat(calculator.isRmdEligible(73)).isTrue();
-}
-
-@Test
-void givenAge74_whenCheckRmdEligibility_thenEligible() {
-    assertThat(calculator.isRmdEligible(74)).isTrue();
-}
-```
-
-Now the mutation `return age >= 74` fails the age-73 test. The mutation `return age > 73` also fails the age-73 test (since `73 > 73` is false). The mutation `return age >= 72` fails the age-72 test (which expects false). All three common operator mutations are caught.
-
-Similarly for exception testing. The weak version:
-
-```java
-@Test
-void givenNegativeBalance_whenComputeRmd_thenThrowsException() {
-    assertThrows(IllegalArgumentException.class,
-        () -> calculator.computeRmd(age(73), balance(-1L)));
-}
-```
-
-This passes even if the wrong validation triggers the exception — for example, if age validation throws an IllegalArgumentException with a different message, and the balance validation was never implemented. The stronger version:
-
-```java
-@Test
-void givenNegativeBalance_whenComputeRmd_thenThrowsValidationExceptionWithCorrectCode() {
-    ValidationException ex = assertThrows(ValidationException.class,
-        () -> calculator.computeRmd(age(73), balance(-1L)));
-
-    assertThat(ex.getCode()).isEqualTo("INVALID_ACCOUNT_BALANCE");
-    assertThat(ex.getMessage()).contains("negative");
-}
-```
-
-Now the test fails if: the exception type is wrong, the code is wrong (a different validation triggered), or the message doesn't describe the problem correctly. Three mutations caught instead of one.
-
-Common mutations to verify tests catch:
-- Flip `<` to `<=` or `>` to `>=` in any comparison — does the boundary test fail?
-- Remove a null guard — does the null-input test fail?
-- Swap if/else branches — does the negative-case test fail?
-- Change `HALF_UP` rounding to `FLOOR` or `CEILING` — does the golden-case test fail?
-- Flip `+` to `-` in the accounting identity — does the invariant test fail?
-- Return a constant instead of a computed value — does the parameterized test fail across multiple inputs?
-
-### Boundary-First Coverage — Where Bugs Live
-
-Boundary-first coverage starts with the edges and works inward. The happy path is the last thing tested, not the first. For RMD age threshold logic:
-
-```java
-@ParameterizedTest(name = "age {0} → expectRmd={1}")
-@MethodSource("rmdAgeThresholds")
-void rmdAgeThresholds(int age, boolean expectRmd) {
-    assertThat(calculator.isRmdEligible(age))
-        .as("RMD eligibility at age %d", age)
-        .isEqualTo(expectRmd);
-}
-
-static Stream<Arguments> rmdAgeThresholds() {
-    return Stream.of(
-        Arguments.of(0,   false),   // impossible but should not throw
-        Arguments.of(72,  false),   // one year before threshold
-        Arguments.of(73,  true),    // first eligible year — critical boundary
-        Arguments.of(74,  true),    // one year after threshold
-        Arguments.of(100, true),    // oldest table entry
-        Arguments.of(120, true),    // IRS table maximum
-        Arguments.of(121, true)     // beyond table — must use fallback divisor
-    );
-}
-```
-
-The parameterized test covers every meaningful region of the age domain: impossible values, one below the threshold, the threshold itself, one above, well above, at table maximum, and beyond table maximum. The test name includes the parameters so that CI failure output reads "age 73 → expectRmd=true FAILED" instead of "rmdAgeThresholds[3] FAILED."
-
-For balance inputs, the boundaries are:
-
-```java
-@ParameterizedTest(name = "balance {0} cents → rmd {1} cents")
-@MethodSource("rmdBalanceBoundaries")
-void rmdBalanceBoundaries(long balanceCents, long expectedRmdCents) {
-    // age 73, divisor 26.5 per IRS Pub 590-B (2022) Table III
-    assertThat(calculator.computeRmd(age(73), balance(balanceCents)))
-        .isEqualTo(expectedRmdCents);
-}
-
-static Stream<Arguments> rmdBalanceBoundaries() {
-    return Stream.of(
-        Arguments.of(0L,          0L),          // zero balance → zero RMD
-        Arguments.of(1L,          0L),          // 1 cent → rounds to 0 (below 1 cent result)
-        Arguments.of(2650L,       100L),        // exactly $26.50 → RMD = $1.00
-        Arguments.of(100_000_00L, 377_358L),    // $100,000 / 26.5 = $3,773.58 in cents
-        Arguments.of(Long.MAX_VALUE / 10, -1L)  // overflow test — expected: exception or defined max
-    );
-}
-```
-
-Note the overflow test. This is a boundary most implementations skip because it seems impossible: who has a balance near Long.MAX_VALUE? But overflow bugs are silent — the computation produces a wrong result without throwing an exception, and the wrong result propagates through the simulation undetected.
-
-### Golden Cases for Rule-Based Logic — Pin the Table
-
-When logic depends on a published table, pin the expected values to specific table entries with full citation. Do not compute the expected value in the test itself (that would be testing your arithmetic against itself). Look up the value in the source, show the arithmetic in the comment, and hardcode the result:
-
-```java
-/**
- * RMD Golden Cases — IRS Publication 590-B (2022 revision), Uniform Lifetime Table (Table III)
- *
- * Age | Life Expectancy Factor | Test Balance  | RMD Computation          | Expected RMD
- * -----|----------------------|---------------|--------------------------|-------------
- *  73  |        26.5          | $500,000.00   | 50000000 / 26.5 = 188679.245... | $18,867.92 (cents: 1,886,792)
- *  80  |        20.2          | $500,000.00   | 50000000 / 20.2 = 247524.752... | $24,752.48 (cents: 2,475,248)
- *  85  |        16.0          | $1,000,000.00 | 100000000 / 16.0 = 625000.0    | $62,500.00 (cents: 6,250,000)
- *  90  |        12.2          | $200,000.00   | 20000000 / 12.2 = 163934.426... | $16,393.44 (cents: 1,639,344)
- */
-@ParameterizedTest(name = "age {0} balance {1} → rmd {2}")
-@MethodSource("rmdGoldenCases")
-void rmdGoldenCases(int age, long balanceCents, long expectedRmdCents) {
-    assertThat(calculator.computeRmd(age(age), balance(balanceCents)))
-        .isEqualTo(expectedRmdCents);
-}
-
-static Stream<Arguments> rmdGoldenCases() {
-    return Stream.of(
-        Arguments.of(73,  50_000_000L,  1_886_792L),
-        Arguments.of(80,  50_000_000L,  2_475_248L),
-        Arguments.of(85, 100_000_000L,  6_250_000L),
-        Arguments.of(90,  20_000_000L,  1_639_344L)
-    );
-}
-```
-
-Four golden cases is enough. They span a range of ages and balances, they are drawn directly from the published table, and the arithmetic is shown so any future engineer can verify the expected values independently. If IRS updates the Uniform Lifetime Table (as they did effective 2022), the comment's citation makes clear which table version is being used, and the test must be updated when the table version changes.
-
-The critical rule: never compute the expected value programmatically in the test. If you write `assertThat(result).isEqualTo(balance / factor)`, you are testing that the implementation uses the same arithmetic you wrote in the test. You are not testing that the arithmetic is correct against the published source.
-
-### AAA Structure — Arrange, Act, Assert
-
-The AAA structure is not just a stylistic preference. Each section has a specific purpose, and deviating from it makes tests harder to read and more likely to over-assert.
-
-```java
-@Test
-void givenIncomeAtBracketEdge_whenComputeTax_thenCorrectMarginalRate() {
-    // Arrange: set up exactly the input state needed for this test
-    // Income is at exactly the boundary where the 22% bracket begins (2024 single filer)
-    TaxInputs inputs = TaxInputs.builder()
-        .taxableIncome(8_907_500L)   // $89,075.00 in cents — 22% bracket starts here
-        .filingStatus(FilingStatus.SINGLE)
-        .taxYear(2024)
-        .build();
-
-    // Act: the single operation being tested
-    TaxResult result = taxCalculator.compute(inputs);
-
-    // Assert: ONLY what this test is about
-    // We are testing the marginal rate at the bracket edge, not the total tax
-    assertThat(result.marginalRate())
-        .as("Marginal rate at $89,075 for single filer in 2024")
-        .isEqualTo(new BigDecimal("0.22"));
-    // Note: total tax is tested separately in givenTypicalIncome_whenComputeTax_thenCorrectTotal
-}
-```
-
-The assertion at the end checks only the marginal rate. It does not assert `result.effectiveTax()`, `result.totalTax()`, `result.bracketBreakdown()`, or any other field of TaxResult. This test is about one behavior: the marginal rate at a bracket edge. Asserting `result.totalTax()` as well means this test breaks whenever total tax computation changes, even if the marginal rate computation is correct. Over-asserting creates tests brittle to legitimate refactoring. Under-asserting creates tests that pass when behavior changes silently.
-
-Assert exactly what this test is claiming to verify. Each behavior gets its own test. Multiple tests on the same method is correct — not redundant, precise.
-
-## Phase 7: Implementation Discipline — Production Code Rules in Full
-
----
-**`/spec-execution` instructions — §PHASE 7 — IMPLEMENTATION DISCIPLINE (PRODUCTION CODE RULES):**
+**`/spec-execution` instructions — §IMPLEMENTATION DISCIPLINE (PRODUCTION CODE RULES):**
 
 ```
 Claude must follow strict implementation discipline.
@@ -890,7 +352,7 @@ MAINTAINABLE OVER TIME
 ```
 ---
 
-Phase 7 governs how production code is written. These rules are not style guidelines — they prevent categories of defects that tests cannot catch and that become exponentially more expensive to fix as the codebase grows.
+These rules govern how production code is written. These rules are not style guidelines — they prevent categories of defects that tests cannot catch and that become exponentially more expensive to fix as the codebase grows.
 
 ### Architectural Separation — Purity as a Design Principle
 
@@ -1186,10 +648,10 @@ The same principle applies to method names. The spec says "compute the Required 
 
 When a MINOR-API-MISMATCH forces a deviation — the spec says `computeRetirementFraction(Person person, int year)` but the actual type is `PersonConfig` — the comment preserves the traceability and explains the deviation. A future engineer following the spec reference finds the code immediately and understands why the parameter type differs. Without the comment, they see a mismatch and cannot tell whether it is an intentional deviation, an oversight, or a bug.
 
-## Phase 8: Pre-Implementation Module Checklist — Catching Gaps Before Code
+## Pre-Implementation Module Checklist
 
 ---
-**`/spec-execution` instructions — §PRE-IMPLEMENTATION MODULE CHECKLIST (Phase 8):**
+**`/spec-execution` instructions — §PRE-IMPLEMENTATION MODULE CHECKLIST:**
 
 ```
 Before writing any production code for a module, Claude must verify:
@@ -1313,115 +775,9 @@ cd training && python generate_swift_structs.py
 
 The reason for this ordering is that the inference stack and the Java implementation must be synchronized. The grammar file is consumed by llama.cpp at inference time to constrain the model's output. If you update the Java parser to accept a new action type but do not update the grammar file, the model will not produce that action type (because the grammar doesn't allow it), and the Java parser will never receive it. The system appears correct in unit tests (where the Java parser is tested with hand-crafted inputs) but fails in production (where the model produces grammar-constrained outputs). Updating the grammar file first forces the full stack — grammar, model output, Swift parsing, Java parsing — to be considered as a unit before any individual layer is modified.
 
-## Phase 9: Traceability Matrix — The Audit That Reveals Gaps
+The implementation discipline, the conflict taxonomy, and the module checklist together form Mode 8's contribution to the pipeline. They ensure that production code is a faithful translation of frozen specs into executable behavior, verified by a test suite that already exists and already fails.
 
----
-**`/spec-execution` instructions — §PHASE 9 — TRACEABILITY GENERATION:**
-
-```
-Claude must produce:
-
-Requirement ID → Acceptance Test → Code Module → Unit Tests
-
-Write to:
-
-engineering/artifacts/traceability-matrix.md
-
-Missing mappings = incomplete implementation.
-
-Traceability becomes:
-
-AUDIT BACKBONE
-```
----
-
-After implementation is complete, the traceability matrix maps every requirement to its verification. It is written to `engineering/artifacts/traceability-matrix.md`. The matrix is not documentation for its own sake — it is an audit instrument.
-
-A complete matrix excerpt for the RMD subsystem:
-
-```markdown
-## Traceability Matrix — LUM-ENG-015 (RetirementWithdrawalCalculator)
-
-| Requirement ID        | Acceptance Test                                                                                                    | Code Module                        | Unit Tests                                                                                                                                                              |
-|-----------------------|--------------------------------------------------------------------------------------------------------------------|------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| LUM-ENG-015-CB-001    | RmdCalculationTest#givenAge73Balance500000_whenComputeWithdrawals_thenRmdIs18867Dollars92Cents                   | RetirementWithdrawalCalculator     | RetirementWithdrawalCalculatorTest#givenAge73_whenComputeRmd_thenUsesCorrectDivisor, #givenAge73Balance0_whenComputeRmd_thenReturnsZero                                  |
-| LUM-ENG-015-CB-002    | RmdCalculationTest#givenAge72_whenComputeWithdrawals_thenNoRmdRequired                                            | RetirementWithdrawalCalculator     | RetirementWithdrawalCalculatorTest#givenAge72_whenCheckEligibility_thenReturnsFalse, #givenAge73_whenCheckEligibility_thenReturnsTrue                                    |
-| LUM-ENG-015-CB-003    | RmdCalculationTest#givenMultipleIras_whenComputeWithdrawals_thenRmdSatisfiedFromFirst                            | RetirementWithdrawalCalculator     | RetirementWithdrawalCalculatorTest#givenTwoIras_whenComputeRmd_thenWithdrawsFromFirstBeforeSecond, #givenFirstIraExhausted_whenComputeRmd_thenContinuesToSecond          |
-| LUM-ENG-015-CB-004    | RmdCalculationTest#givenInsufficientBalance_whenComputeWithdrawals_thenReturnsInsufficientResult                 | RetirementWithdrawalCalculator     | RetirementWithdrawalCalculatorTest#givenZeroBalance_whenComputeRmd_thenReturnsInsufficientResult, #givenPartialBalance_whenComputeRmd_thenReturnsActualWithdrawn         |
-```
-
-The matrix reveals three types of gap:
-
-**Gap type 1: Requirement ID with no acceptance test.** A behavior was specified in the spec but no test verifies it. The code may implement it correctly or incorrectly, and CI will not catch it. Every row in the matrix must have an acceptance test. Any row with a missing test is an implementation that is incomplete.
-
-**Gap type 2: Test with no requirement ID.** A test was written without a corresponding spec behavior. The test is verifying something the spec does not require — either a speculative feature (code that was not requested and may not be wanted), a duplicate of another test, or an implementation detail that was tested instead of behavior. Tests without spec authority should be investigated and either linked to a behavior ID or deleted.
-
-**Gap type 3: Code with no traceability entry.** A class or method exists that implements behavior not in any spec. This is the most dangerous gap: code written without spec authority has no defined correct behavior. There is no spec to test against, no reviewer who approved the behavior, no user who asked for it. It is either dead code (should be deleted), speculative code (should be speced before shipping), or misimplemented code (where a developer tried to implement a spec behavior but implemented something subtly different and didn't notice).
-
-The matrix is also an operational debugging tool. When LUM-ENG-015-CB-003 fails in CI, you look it up, find `RmdCalculationTest#givenMultipleIras_whenComputeWithdrawals_thenRmdSatisfiedFromFirst`, then look up LUM-ENG-015-CB-003 in the spec to read the exact behavior definition. You do not have to infer what the test is testing. The spec tells you what was intended.
-
-## Phase 10: Mutation Resilience — Systematic Test Hardening
-
-Phase 10 is a pass over the completed unit test suite specifically to verify that tests fail on common mutations. The process is systematic, not ad-hoc. For each test, apply each mutation type and verify that the test fails.
-
-The mutation checklist for `RetirementWithdrawalCalculatorTest`:
-
-**1. Operator mutations on age comparison.** The production code contains `if (age >= 73)`. Mentally apply: change to `if (age > 73)`. Does any test fail? If the test suite contains `givenAge73_whenCheckEligibility_thenReturnsTrue()`, yes — `73 > 73` is false, so the test fails. Good. If the test suite only contains `givenAge74_whenCheckEligibility_thenReturnsTrue()`, no — the mutation survives. The test is insufficient. Add the boundary test.
-
-**2. Balance comparison mutations.** The production code contains `if (requestedCents > availableBalance)`. Apply: change to `if (requestedCents >= availableBalance)`. Does any test fail? If `givenExactBalance_whenWithdraw_thenSucceeds()` exists (where requested equals available), yes. If not, the mutation survives. Add the test.
-
-**3. Null guard removal.** The production code contains `if (config == null) throw new NullPointerException(...)`. Apply: remove the guard. Does any test fail? If `givenNullConfig_whenCompute_thenThrowsException()` exists, yes. If not, the mutation survives (the code will throw an NPE somewhere deeper, but not at the intended point with the intended message). The test `givenNullConfig_whenCompute_thenThrowsNullPointerWithUsefulMessage()` should exist.
-
-**4. Rounding mode mutations.** The production code contains `Math.round((double) balanceCents / divisor)`. Apply: change to `(long) ((double) balanceCents / divisor)` (truncation instead of rounding). Does any test fail? If the golden case tests use values where the fractional part is >= 0.5 (rounding up), yes — the truncation will return a value 1 cent lower. All golden cases should be selected to exercise rounding in both directions (round up and round down), so at least one will fail on this mutation.
-
-**5. Branch swap mutations.** The production code contains:
-```java
-if (isRmdEligible(age)) {
-    return computeRmd(balance, divisor);
-} else {
-    return 0L;
-}
-```
-Apply: swap the branches. Does any test fail? Yes — `givenAge72_whenComputeWithdrawals_thenRmdIsZero()` will fail (it expects 0 but gets a computed value), and `givenAge73_whenComputeWithdrawals_thenRmdIsNonZero()` will fail (it expects a value but gets 0). Both boundary tests together catch the branch swap.
-
-The pattern: mutations that survive are holes in the test suite. Finding them systematically in Phase 10 fills those holes before the code ships. Finding them after the code ships means real bugs.
-
-## Phase 11: CI Enforcement — Authority, Not Suggestion
-
----
-**`/spec-execution` instructions — §PHASE 11 — CI ENFORCEMENT:**
-
-```
-Claude treats CI gates as authority.
-
-Blocked by:
-
-- acceptance failures
-- invariant failures
-- unit test failures
-- traceability gaps
-
-Claude must NOT override CI.
-```
----
-
-Every prior phase has been a design-time or pre-implementation check. CI is the runtime check: does the actual compiled code, running actual tests, produce correct results on every commit?
-
-The skill's language about CI is deliberate: "Claude treats CI gates as authority." Not "Claude respects CI." Not "Claude tries to keep CI green." Authority. The distinction matters because developers learn the behavior of the system around them. If CI failures are sometimes ignored, sometimes worked around by adjusting a test to match what the code does, sometimes declared "flaky" and skipped — developers learn that CI is a suggestion. They begin to make implementation decisions without regard for CI, knowing that a CI failure is not a hard stop.
-
-If CI failures always result in the underlying problem being fixed before the commit lands, developers learn that CI is authority. They do not ship with failing tests. They do not redefine what "passing" means. They fix the code or the spec, but not the test to pass the wrong behavior.
-
-What "not overriding CI" means in practice requires precision, because there are two kinds of failing tests.
-
-**The test is correct and the code is wrong.** The acceptance test correctly describes the expected behavior per the spec. The code produces a different result. Fix the code. Claude does not adjust the expected value in the test, does not add a comment saying "known issue," does not create a ticket and mark the test as pending. The code is wrong and must be fixed before the commit lands.
-
-**The test is wrong and the spec is wrong.** The acceptance test was written from a spec that has a bug — the expected behavior in the spec is incorrect, not the code. The test fails because the code correctly implements the correct behavior, not the specified behavior. The response is not to fix the code (which is correct) and not to adjust the test (which would silently accept wrong behavior). The response is a Formal Spec Revision Request to correct the spec, followed by a test update to match the corrected spec, followed (if necessary) by a code adjustment. The sequence is always spec first, then test, then code. Never test first to make CI pass.
-
-This distinction matters because it means CI failures always trigger one of two responses, and only two: fix the code, or fix the spec. "Fix the test to make CI pass" is not a response. It is the removal of a guard that exists precisely to catch wrong behavior. When you change a failing test to passing by adjusting the expected value without spec authority, you are not fixing a problem — you are silencing a detector.
-
-The CI gate is the last line of defense against incorrect implementation. A spec-first engineering process where CI authority is respected produces a codebase where every behavior is specified, every spec behavior is tested, every test is grounded in a spec, and every failing test represents a real problem that must be fixed. A spec-first engineering process where CI is treated as a suggestion produces a codebase that looks spec-first from the documentation but is not spec-first in practice — because the implementation has silently diverged from the spec wherever it was convenient to let it.
-
-The eleven phases of `/spec-execution` are the architecture of that protection. Phase 1 prevents implementation from starting under ambiguous conditions. Phases 2 and 3 verify that the preconditions for correct implementation are in place. Phases 4 through 6 build the verification suite that CI will enforce. Phase 7 governs how code is written so that it remains correct and maintainable. Phase 8 catches module-level problems before they become code-level problems. Phase 9 creates the audit trail that keeps the implementation and the spec aligned. Phase 10 strengthens the verification suite against common mutations. Phase 11 enforces everything.
+Two modes remain. Mode 8b (spec-fidelity) audits the implementation for completeness, faithfulness, and containment. Mode 9 (spec-traceability) builds the traceability matrix, verifies mutation resilience, and establishes CI enforcement. Chapters 9 and 10 cover these.
 
 ---
 **`/spec-execution` instructions — §OPERATING PRINCIPLE:**
@@ -1433,6 +789,7 @@ Claude is no longer:
 - spec reviewer
 - math validator
 - stochastic researcher
+- test author
 
 Claude is:
 
@@ -1441,15 +798,12 @@ IMPLEMENTATION ASSISTANT
 constrained by:
 
 - frozen specs
-- acceptance tests
-- invariant tests
-- unit tests
+- failing tests (from spec-test-gen)
 - implementation discipline
-- CI enforcement
 ```
 ---
 
-Taken together, these phases implement one principle: the spec is the authority, the tests verify the authority is implemented, and CI enforces that the verification passes. Every deviation from this sequence is a way of letting implementation decisions slip outside the authority of the spec. The discipline prevents it.
+The role transition is complete. Claude operates under the authority of the frozen spec, the failing test suite, and the implementation discipline. Every line of code traces to a spec behavior. Every deviation triggers a formal revision request. Every module passes its checklist before the first line is written. The result is a codebase where correctness is structural, not aspirational.
 
 ---
 **`/spec-execution` instructions — §CORE DISCIPLINE:**
@@ -1459,8 +813,7 @@ Behavior authority = specs + acceptance tests
 Correctness authority = invariants
 Implementation stability = unit tests
 Architecture integrity = implementation discipline
-Process authority = CI
 
-Claude operates under all five.
+Claude operates under all four.
 ```
 ---

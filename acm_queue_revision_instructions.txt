@@ -1,0 +1,111 @@
+
+ACM QUEUE REVISION INSTRUCTIONS FOR CLAUDE
+=========================================
+
+Scope
+-----
+Revise ONLY the uploaded ACM Queue draft. Do NOT reference or incorporate any prior versions, diagrams, or earlier terminology decisions. Treat the current document as the sole source of truth.
+
+Goal
+----
+Strengthen the article for ACM Queue publication while preserving:
+- practitioner voice
+- systems framing
+- non-academic tone
+- non-promotional stance
+- conceptual clarity over methodology branding
+
+This is NOT an academic rewrite and NOT a whitepaper conversion.
+
+Primary Revision Objectives
+---------------------------
+
+1) Sharpen the opening
+- Replace the current opening with a more concrete engineering tension.
+- Introduce a short, realistic failure scenario involving generative artifacts and correctness loss.
+- Do not reference products, Lumiscape, or personal tooling.
+- Keep it compact and immediate.
+
+2) Make the contribution explicit
+Insert a short section early in the article that clearly states what the article argues.
+Format:
+
+This article argues:
+1. ...
+2. ...
+3. ...
+
+The three points must be:
+- correctness is not guaranteed by artifact validity
+- interpretive boundaries introduce probabilistic misalignment
+- engineering must shift from artifact validation to cross-boundary alignment
+
+3) Introduce one concrete example
+Add one tight illustrative case:
+- spec intent
+- generated artifacts
+- tests pass
+- runtime behavior deviates from intent
+
+Keep it concise and technical.
+No storytelling. No dramatization.
+
+4) Control SSE introduction
+If Spec-Surface Engineering (SSE) is introduced:
+- do NOT lead with it
+- do NOT frame as a methodology or framework
+- introduce only AFTER the problem and model are clear
+- introduce as a naming convenience for an observed discipline
+
+Use tone:
+"We need a term for this class of engineering practice. I’ll refer to it as Spec-Surface Engineering (SSE)."
+
+Then continue without promoting or expanding it.
+
+5) Tighten terminology
+Stabilize vocabulary across the article:
+Use consistently:
+- correctness
+- interpretive boundary
+- specification
+- artifacts
+- runtime behavior
+- alignment / misalignment
+
+Avoid synonym drift.
+
+6) Strengthen the ending
+Rewrite the closing section to be forward-looking for engineers:
+- what assumptions must change
+- what practices must be reconsidered
+- why artifact correctness is insufficient in generative systems
+
+Do NOT:
+- summarize the article
+- moralize
+- predict the future dramatically
+
+Keep it grounded and directional.
+
+Constraints
+-----------
+
+Do NOT:
+- academicize the writing
+- add citations
+- add mathematical formalism
+- lengthen the article substantially
+- introduce tools, frameworks, or implementation detail
+- convert into a methodology pitch
+- reference Lumiscape
+
+Maintain:
+- practitioner authority
+- conceptual systems framing
+- clarity over completeness
+
+Output
+------
+Return:
+1. Fully revised ACM Queue article
+2. Brief changelog describing structural edits only (not prose justification)

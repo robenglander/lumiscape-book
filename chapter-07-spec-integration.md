@@ -1,4 +1,4 @@
-# Chapter 6: Verifying the Bridge Between Engines
+# Chapter 7: Verifying the Bridge Between Engines
 
 ## Two Engines That Must Agree
 
@@ -460,7 +460,7 @@ The integration validation produces a single deliverable: `integration-validatio
 
 The report is a document that a senior engineer reads, not a test runner output. It needs to contain enough information to make a routing decision: where does this problem go? The classification is the first routing signal, but it is not sufficient on its own. The evidence section must include: the actual numerical divergence (year, amount, both engine values), the spec text for each engine (the definition that was checked), the scenario configuration used, and where applicable, the year at which divergence began and its pattern. "Year 5, balance diverges by $156.23, degeneracy test" is not a finding — it is a number. "Year 5 divergence of $156.23 in retirement-onset year; deterministic engine shows $1,044,231.77, Monte Carlo path 1 shows $1,044,075.54; divergence matches $157.43 difference in first-year withdrawal between engines; deterministic engine: $51,500.00, Monte Carlo: $51,657.43; root cause candidate: CPI factor applied to spending floor uses different base year" — that is a finding. It gives the engineer a starting point, not just a symptom.
 
-The integration report is the Mode 6 artifact that gates progression. Before Mode 7 (implementation at scale) begins, this report must exist and must have been reviewed by the engineer. A report full of PASS findings is a green light. A report with open findings requires the engineer to decide: resolve the findings now and re-run, or proceed with the findings documented and accepted as known limitations. The second option is sometimes the right choice — if a finding is a TEST GAP in a low-priority scenario type, the cost of fixing it may not justify blocking implementation. But the decision must be explicit and documented, not implicit.
+The integration report is the Mode 6 artifact that gates progression. Before Mode 8 (implementation at scale) begins, this report must exist and must have been reviewed by the engineer. A report full of PASS findings is a green light. A report with open findings requires the engineer to decide: resolve the findings now and re-run, or proceed with the findings documented and accepted as known limitations. The second option is sometimes the right choice — if a finding is a TEST GAP in a low-priority scenario type, the cost of fixing it may not justify blocking implementation. But the decision must be explicit and documented, not implicit.
 
 ## Where Integration Validation Fits in the Pipeline
 

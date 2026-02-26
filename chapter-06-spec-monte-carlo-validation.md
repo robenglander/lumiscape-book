@@ -1,4 +1,4 @@
-# Chapter 5: Testing What Randomness Is Doing
+# Chapter 6: Testing What Randomness Is Doing
 
 ## Why Stochastic Testing Is Fundamentally Different
 
@@ -36,7 +36,7 @@ Create a complete acceptance test suite that validates the Monte Carlo system ag
 
 ## The Existing-Art Requirement — Why Informality Breaks Down for Stochastic Tests
 
-Chapter 4 explained why external authoritative sources are required for deterministic tests: to avoid circularity, where the tests merely confirm that the code matches the spec without verifying that the spec is correct. The same motivation applies here, but with an additional structural reason specific to stochastic testing.
+Chapter 5 explained why external authoritative sources are required for deterministic tests: to avoid circularity, where the tests merely confirm that the code matches the spec without verifying that the spec is correct. The same motivation applies here, but with an additional structural reason specific to stochastic testing.
 
 For a deterministic component, you can often compute the expected output from first principles. Given IRS Publication 590-B and a calculator, you can derive the expected RMD. The external source provides ground truth, but you can follow the reasoning. For a stochastic component, you need theoretical backing for what the statistical properties of the output should be. You cannot derive those properties without the theory. And informal sources — blogs, vendor documentation, StackOverflow answers — do not give you the theory. They give you the conclusion without the proof, which means they cannot tell you the invariants you need to test against.
 
@@ -270,7 +270,7 @@ Degeneracy tests are the most powerful tests in the Monte Carlo suite, and they 
 
 This matters because the Monte Carlo code path is not the same code path as the deterministic engine. It has different loop structure, different state management, different accumulation logic. A bug in the stochastic path might produce results that are within the distributional tolerance of a statistical test but wrong by a constant factor that the degeneracy test catches immediately.
 
-Designing a degeneracy test requires you to specify the exact expected value through arithmetic, using the spec's compounding convention. This is the same discipline that Chapter 4 applies to golden cases for RMD calculations — derive the expected value from first principles, show the arithmetic, assert equality.
+Designing a degeneracy test requires you to specify the exact expected value through arithmetic, using the spec's compounding convention. This is the same discipline that Chapter 5 applies to golden cases for RMD calculations — derive the expected value from first principles, show the arithmetic, assert equality.
 
 ```mermaid
 flowchart TD
@@ -393,7 +393,7 @@ The coverage gate also prevents a scope-creep failure mode in spec writing. If t
 
 ## The MVP Discipline — What Validation Is For
 
-The minimum viable set for this validation mode is three to six tests per component. This is a deliberate constraint, not a low bar. The goal of Mode 5 (spec-monte-carlo-validation) is different from the goal of Mode 7 (spec-execution, where tests are written during implementation). Mode 5 produces a validation suite that establishes the statistical properties the implementation must satisfy. Mode 7 produces a comprehensive unit test suite that verifies internal logic. Conflating these produces one of two failures: an overly large Mode 5 suite that takes hours to run and delays the gate, or an under-covered Mode 7 suite that relies on Mode 5 tests to cover internal behavior they were never designed to test.
+The minimum viable set for this validation mode is three to six tests per component. This is a deliberate constraint, not a low bar. The goal of Mode 5 (spec-monte-carlo-validation) is different from the goal of Mode 7 (spec-test-gen, where the full test suite is generated before any production code). Mode 5 produces a validation suite that establishes the statistical properties the implementation must satisfy. Mode 7 produces a comprehensive test suite, including acceptance, invariant, and unit tests, that the implementation must satisfy. Conflating these produces one of two failures: an overly large Mode 5 suite that takes hours to run and delays the gate, or an under-covered Mode 7 suite that relies on Mode 5 tests to cover internal behavior they were never designed to test.
 
 ---
 **`/spec-monte-carlo-validation` instructions — §MVP FIRST:**
@@ -405,9 +405,9 @@ Produce an MVP suite: 3–6 tests per component. After MVP, optionally propose a
 ```
 ---
 
-The MVP per component requires: one degenerate test (exact behavior under zero variance), one statistical test (the core distributional property), and one negative test (invalid parameter rejection). Three tests establish the minimum correctness bar. The extended suite — additional statistical tests, edge cases, multi-parameter configurations — is the Mode 7 responsibility, implemented alongside the code that it tests.
+The MVP per component requires: one degenerate test (exact behavior under zero variance), one statistical test (the core distributional property), and one negative test (invalid parameter rejection). Three tests establish the minimum correctness bar. The extended suite — additional statistical tests, edge cases, multi-parameter configurations — is Mode 7's responsibility, generated as part of the full test suite before implementation begins.
 
-This sequencing also serves a quality function: the Mode 5 tests are written before any implementation exists. They are written against the spec's public API contracts. They will compile only once the API is implemented (during Mode 7), at which point they act as acceptance tests. Tests written after implementation tend to follow the implementation's structure rather than the spec's contract. Tests written before implementation are forced to follow the spec. This is the same principle that applies to TDD in unit testing, applied at the architectural scale of a Monte Carlo validation suite.
+This sequencing also serves a quality function: the Mode 5 tests are written before any implementation exists. They are written against the spec's public API contracts. They will compile only once the API is implemented (during Mode 8), at which point they act as acceptance tests. Tests written after implementation tend to follow the implementation's structure rather than the spec's contract. Tests written before implementation are forced to follow the spec. This is the same principle that applies to TDD in unit testing, applied at the architectural scale of a Monte Carlo validation suite.
 
 ## Putting It Together: The Validation Report Structure
 

@@ -1,4 +1,4 @@
-# Chapter 4: Testing Against Ground Truth
+# Chapter 5: Testing Against Ground Truth
 
 ## The Circularity Problem
 
@@ -35,7 +35,7 @@ These tests must not depend on implementation details.
 flowchart LR
     SPEC["Spec\n(behavior IDs)"] --> M4["Mode 4\nspec-deterministic-validation"]
     M4 --> REPORT["deterministic-validation-report.md\n(golden cases + coverage table)"]
-    REPORT --> M7["Mode 7\nspec-execution Phase 4"]
+    REPORT --> M7["Mode 7\nspec-test-gen"]
     M7 --> TESTS["Executable acceptance tests\n(behavioral authority)"]
     TESTS --> CI["CI gate\n(enforcement)"]
 
@@ -639,7 +639,7 @@ Action required: write acceptance tests for LUM-ENG-015-B-007 and LUM-ENG-015-B-
 before proceeding to Mode 7.
 ```
 
-The gate is non-negotiable because the purpose of Mode 4 is to validate completeness before implementation begins. An uncovered behavior ID means there is no external-authority test for that behavior. When the developer implements it in Mode 7, they will write unit tests — but those tests will be consistency tests. They will verify that the code does what the developer thought it should do, not that what the developer thought is correct. The Mode 4 gate exists to prevent this gap. If the gate has exceptions, it doesn't protect the behaviors that need it most — the complex, subtle behaviors most likely to be implemented incorrectly.
+The gate is non-negotiable because the purpose of Mode 4 is to validate completeness before implementation begins. An uncovered behavior ID means there is no external-authority test for that behavior. When the developer implements it in Mode 8, they will write unit tests — but those tests will be consistency tests. They will verify that the code does what the developer thought it should do, not that what the developer thought is correct. The Mode 4 gate exists to prevent this gap. If the gate has exceptions, it doesn't protect the behaviors that need it most — the complex, subtle behaviors most likely to be implemented incorrectly.
 
 ## What This Mode Does Not Do
 
@@ -771,4 +771,4 @@ The gate is enforced mechanically because the temptation to skip Mode 4 is stron
 
 The mode occupies its position in the pipeline — after spec freeze, before implementation — because that is when it is strongest. When tests written from external authorities disagree with tests written from specs, the discrepancy is visible before any code is written to satisfy either set of tests. The spec author and the test author together can identify whether the spec is wrong, whether the external source was misread, or whether there is genuine ambiguity in the regulatory rule. That conversation happens in a spec revision, before it becomes embedded in code.
 
-Mode 4 is where the cost of being wrong is still low. By Mode 7, a wrong assumption has been implemented, tested, integrated, and connected to other components that depend on it. Fixing it requires changing code in multiple places. In Mode 4, fixing it requires changing a test comment and recomputing an expected value. The question Mode 4 forces is direct: are your tests anchored to reality, or just to your own prior assumptions? The IRS table does not care what your spec says. The accounting identity does not care what your implementation does. The existing-art test suite enforces this, and the spec freeze gate ensures you can't skip it.
+Mode 4 is where the cost of being wrong is still low. By Mode 8, a wrong assumption has been implemented, tested, integrated, and connected to other components that depend on it. Fixing it requires changing code in multiple places. In Mode 4, fixing it requires changing a test comment and recomputing an expected value. The question Mode 4 forces is direct: are your tests anchored to reality, or just to your own prior assumptions? The IRS table does not care what your spec says. The accounting identity does not care what your implementation does. The existing-art test suite enforces this, and the spec freeze gate ensures you can't skip it.

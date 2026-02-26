@@ -1,0 +1,96 @@
+
+ACM Queue Revision Guidance – Areas Still Needing Improvement
+(Strictly based on engineering_alignment_acm_queue_v2.md)
+
+1) Sharpen the core claim early
+Add a single explicit thesis near the opening:
+
+"LLMs don’t break software correctness — they relocate where correctness must be governed."
+
+This anchors the piece as a correctness article rather than a drift essay.
+
+---
+
+2) Define “correctness” operationally
+Add one short definition early:
+
+"Correctness here means: system behavior matches specified intent, across every interpretive boundary."
+
+Prevents confusion with reliability, formal verification, or statistical accuracy.
+
+---
+
+3) Ground Spec‑Surface Engineering (SSE)
+After introducing the name, add a paragraph clarifying what it is not and what it is:
+
+"Spec‑Surface Engineering is not a new development process, framework, or methodology. 
+It treats specifications as the governing interface between intent and generated artifacts — 
+the surface where correctness must be enforced."
+
+---
+
+4) Add one concrete interpretive‑boundary example
+Include a short engineering example (4–5 lines), e.g.:
+
+- Spec defines grammar actions → parser behavior diverges
+- Acceptance tests derived from spec → generated code mismatches behavior
+- Monte Carlo regime spec → path generator implementation differs
+
+Keep it concise and technical.
+
+---
+
+5) Frame the engineer’s role as structural necessity
+Replace preference framing with obligation:
+
+"Without an active engineer governing the spec surface, probabilistic generation will optimize for plausibility, not correctness."
+
+---
+
+6) Strengthen the closing with a practitioner takeaway
+Add a final actionable line:
+
+"If you adopt one change: treat specifications as executable governance artifacts, not documentation. Everything else follows from that."
+
+---
+
+7) Clarify traditional vs probabilistic drift
+Insert a tight comparison:
+
+Traditional engineering:
+- Drift between requirements and code
+- Deterministic artifacts
+- Failures localized
+
+LLM‑assisted engineering:
+- Drift across interpretive translations
+- Probabilistic generation
+- Failures occur at boundaries
+
+---
+
+8) Tone calibration for ACM Queue
+Adjust language toward practitioner authority:
+
+Prefer:
+"In practice, systems behave this way…"
+
+Over:
+"I’ve learned…"
+
+Maintain voice, but reduce introspective framing.
+
+---
+
+9) Tighten structural progression
+Ensure article flow clearly follows:
+
+1. Problem shift (LLMs relocate correctness risk)
+2. Interpretive boundaries
+3. Spec surface
+4. SSE named and grounded
+5. Engineer obligation
+6. Practical implications
+7. Practitioner closing
+
+No structural rewrite required — this is sequencing and sharpening.

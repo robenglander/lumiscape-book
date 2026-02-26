@@ -1,0 +1,11 @@
+**Subject:** Query — "Governing Correctness in LLM-Assisted Development"
+
+Dear ACM Queue Editorial Team,
+
+I am writing to propose a feature article for Queue: "Governing Correctness in LLM-Assisted Development" (~3,300 words). The article argues that LLMs do not break software correctness — they relocate where it must be governed. The failure mode they introduce is not generation quality; it is boundary drift: subtle semantic misalignment that accumulates at the transitions between specification, generated artifacts, and runtime behavior. A system can pass its test suite, compile cleanly, and ship features while becoming progressively misaligned with its specified intent — because the tests were generated from the same context as the code, and neither was compared against the specification.
+
+The article develops a structural account of where correctness degrades — five interpretive boundaries between intent, translation, realization, and observation — and a discipline for governing each one. The practices are grounded in the construction of a production financial planning system where specification review, empirical validation against external authoritative sources, and a formal revision protocol were operational before they were prose. Eight formal revision events were required after the initial specification freeze; each is an observable data point about what boundary governance makes visible. The article is written in practitioner voice, without academic framing or tooling recommendations.
+
+I believe this addresses a problem Queue's readership is encountering now: teams using LLM-assisted development who have noticed correctness eroding in ways that prompt engineering and evaluation harnesses don't catch, but lack a structural account of why. I am a retired software architect and engineer with more than four decades of experience, most recently as Lead Principal Engineer at Atlassian, and the author of two O'Reilly books. The article was developed with the assistance of Claude (Anthropic) — a relationship I disclose in the author note, as it demonstrates the discipline the article describes. I would be glad to send the full manuscript on request.
+
+Robert Englander
