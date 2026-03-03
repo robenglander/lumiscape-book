@@ -28,7 +28,7 @@ Start the conversation:
 
 Claude comes back with the rules: RMDs begin at age 73 (under SECURE 2.0 Act), the distribution amount is calculated by dividing the prior year-end balance by a life expectancy factor from IRS Publication 590-B Table III, the penalty for missing an RMD is 25% of the shortfall (reduced from 50% by SECURE 2.0). Claude cites IRS Publication 590-B, the SECURE 2.0 Act of 2022, and the relevant Internal Revenue Code sections.
 
-Guide Claude toward authoritative sources. Government publications, regulatory text, official standards. Not blog posts, not financial advisor websites, not forum answers. When Claude cites an IRS publication, you can verify it. When the source is vague, you cannot. This discipline pays off later: when you run deterministic validation (Chapter 5), you verify your engine's output against hand-calculated values derived from those same primary sources. The authoritative citation from spec writing becomes the ground truth for validation.
+Guide Claude toward authoritative sources. Government publications, regulatory text, official standards. Not blog posts, not financial advisor websites, not forum answers. When Claude cites an IRS publication, you can verify it. When the source is vague, you cannot. This discipline pays off later: when you run deterministic validation (Chapter 7), you verify your engine's output against hand-calculated values derived from those same primary sources. The authoritative citation from spec writing becomes the ground truth for validation.
 
 > "Show me the actual IRS Uniform Lifetime Table from Publication 590-B. I want the divisors for ages 72 through 85."
 

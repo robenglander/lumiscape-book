@@ -1,6 +1,6 @@
-# Chapter 8: Tests Before Code
+# Chapter 10: Tests Before Code
 
-Mode 7 exists because of a specific failure we kept hitting: when test generation and implementation happen in the same phase, tests drift. They start describing what the code does instead of what the specs require. The implementer writes a calculator, writes a test that calls the calculator, and the test passes. Of course it passes. The test was written to match the code. Whether the code matches the spec is a different question, and one that the test is no longer equipped to answer.
+Mode 9 exists because of a specific failure we kept hitting: when test generation and implementation happen in the same phase, tests drift. They start describing what the code does instead of what the specs require. The implementer writes a calculator, writes a test that calls the calculator, and the test passes. Of course it passes. The test was written to match the code. Whether the code matches the spec is a different question, and one that the test is no longer equipped to answer.
 
 The fix is structural. Generate the entire test suite first, before a single line of production code exists. Every test references a behavior ID from a frozen spec. Every test fails. Then implementation begins, and the only way to make progress is to satisfy the behavioral contract the tests define. If a test passes before any production code is written, the test is not testing anything. Strengthen it or delete it.
 
@@ -16,7 +16,7 @@ flowchart TD
     P4 --> P5["Phase 5\nInvariant Test Generation\n(correctness anchors)"]
     P5 --> P6["Phase 6\nUnit Test Generation\n(implementation stability)"]
     P6 --> GATE["Completion Gate\n(zero placeholders, full coverage)"]
-    GATE --> REPORT["test-gen-report.md\n+ test-gen-manifest.json\n(gate artifact for Mode 8)"]
+    GATE --> REPORT["test-gen-report.md\n+ test-gen-manifest.json\n(gate artifact for Mode 10)"]
 
     style LOCK fill:#fef3c7
     style P4 fill:#dcfce7
@@ -66,7 +66,7 @@ Any spec issue encountered must be raised as a Formal Spec Revision Request (see
 ```
 ---
 
-This is the same discipline that governs Mode 8 (implementation), but it applies here too. Specs are contracts. If a spec is ambiguous, that ambiguity should have been caught in review. If it was not caught, the right response is a Formal Spec Revision Request, not a quiet decision about what the spec "probably means."
+This is the same discipline that governs Mode 10 (implementation), but it applies here too. Specs are contracts. If a spec is ambiguous, that ambiguity should have been caught in review. If it was not caught, the right response is a Formal Spec Revision Request, not a quiet decision about what the spec "probably means."
 
 The temptation during test generation is different from the temptation during implementation. During implementation, the temptation is to interpret the spec generously and write code that "makes sense." During test generation, the temptation is to skip a behavior ID because the spec does not define the expected output precisely enough to write an assertion. Both temptations lead to the same outcome: a gap in the behavioral contract that no one notices until production.
 
@@ -707,7 +707,7 @@ The completion gate has four conditions. All four must pass before the test-gen 
 
 **No production code was written or modified.** This phase writes tests only. If any production class was modified, something went wrong. The discipline exists to prevent test generation from being influenced by implementation decisions.
 
-If any condition fails, do not write the report. Fix the condition first. The test-gen report gates Mode 8 (implementation). An incomplete or dishonest report means implementation starts against an incomplete behavioral contract. The cost of that gap compounds through every subsequent mode.
+If any condition fails, do not write the report. Fix the condition first. The test-gen report gates Mode 10 (implementation). An incomplete or dishonest report means implementation starts against an incomplete behavioral contract. The cost of that gap compounds through every subsequent mode.
 
 ```mermaid
 flowchart TD
@@ -760,10 +760,10 @@ PASS — zero placeholders, full coverage, all tests compile
 FAIL — [reason]
 ```
 
-The report is the gate artifact for Mode 8 (spec-execution). Implementation must not begin until this report exists and shows PASS.
+The report is the gate artifact for Mode 10 (spec-execution). Implementation must not begin until this report exists and shows PASS.
 
 ## What Comes Next
 
 The test suite now defines the behavioral contract. Every spec behavior has a corresponding test. Every test fails. Every invariant anchors a mathematical property. Every unit test is designed to catch the mutations that would silently corrupt the implementation.
 
-Mode 8 begins. The implementer's job is to make these tests pass, one at a time, without modifying them. The tests are the authority. The implementation serves them.
+Mode 10 begins. The implementer's job is to make these tests pass, one at a time, without modifying them. The tests are the authority. The implementation serves them.

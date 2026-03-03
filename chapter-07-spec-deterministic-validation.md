@@ -1,4 +1,4 @@
-# Chapter 5: Testing Against Ground Truth
+# Chapter 7: Testing Against Ground Truth
 
 ## The Circularity Problem
 
@@ -33,13 +33,13 @@ These tests must not depend on implementation details.
 
 ```mermaid
 flowchart LR
-    SPEC["Spec\n(behavior IDs)"] --> M4["Mode 4\nspec-deterministic-validation"]
-    M4 --> REPORT["deterministic-validation-report.md\n(golden cases + coverage table)"]
-    REPORT --> M7["Mode 7\nspec-test-gen"]
-    M7 --> TESTS["Executable acceptance tests\n(behavioral authority)"]
+    SPEC["Spec\n(behavior IDs)"] --> M6["Mode 6\nspec-deterministic-validation"]
+    M6 --> REPORT["deterministic-validation-report.md\n(golden cases + coverage table)"]
+    REPORT --> M9["Mode 9\nspec-test-gen"]
+    M9 --> TESTS["Executable acceptance tests\n(behavioral authority)"]
     TESTS --> CI["CI gate\n(enforcement)"]
 
-    EXTAUTH["External authority\n(IRS, SSA, finance math)"] --> M4
+    EXTAUTH["External authority\n(IRS, SSA, finance math)"] --> M6
 
     style EXTAUTH fill:#fef3c7
     style REPORT fill:#dbeafe
@@ -636,10 +636,10 @@ inherited IRA disposition rules — both high-complexity, high-stakes behaviors 
 material impact on distribution calculations.
 
 Action required: write acceptance tests for LUM-ENG-015-B-007 and LUM-ENG-015-B-008
-before proceeding to Mode 7.
+before proceeding to Mode 9.
 ```
 
-The gate is non-negotiable because the purpose of Mode 4 is to validate completeness before implementation begins. An uncovered behavior ID means there is no external-authority test for that behavior. When the developer implements it in Mode 8, they will write unit tests — but those tests will be consistency tests. They will verify that the code does what the developer thought it should do, not that what the developer thought is correct. The Mode 4 gate exists to prevent this gap. If the gate has exceptions, it doesn't protect the behaviors that need it most — the complex, subtle behaviors most likely to be implemented incorrectly.
+The gate is non-negotiable because the purpose of Mode 6 is to validate completeness before implementation begins. An uncovered behavior ID means there is no external-authority test for that behavior. When the developer implements it in Mode 10, they will write unit tests — but those tests will be consistency tests. They will verify that the code does what the developer thought it should do, not that what the developer thought is correct. The Mode 6 gate exists to prevent this gap. If the gate has exceptions, it doesn't protect the behaviors that need it most — the complex, subtle behaviors most likely to be implemented incorrectly.
 
 ## What This Mode Does Not Do
 
@@ -649,7 +649,7 @@ This temporal ordering is the entire point. Tests written before implementation 
 
 Tests written from the spec, before the code, enforce the spec. When those tests are anchored to external authoritative sources, they enforce correctness — not just consistency with the spec, but alignment with the IRS table, the accounting identity, the financial mathematics. The implementation either hits the target or it exposes a discrepancy. That discrepancy is either a bug in the implementation (fix the code), a bug in the spec (fix the spec through the freeze process), or a bug in the test (the external source was misread, fix the test and the citation). All three outcomes are improvements. None of them is silent.
 
-The mode also does not test probabilistic or stochastic behaviors. If a calculation involves a random variable, a distribution, or a Monte Carlo simulation, it belongs to Mode 5 (`/spec-monte-carlo-validation`), which uses different techniques: fixed seeds, repeated runs, statistical confidence intervals, and formal hypothesis tests. Mode 4 is strictly for behaviors that are deterministic — given the same inputs, they always produce the same output. Tax brackets, RMD divisors, compound interest formulas, and accounting identities are all deterministic. The mode is named for this property, and it is enforced by the component list in the PROJECT CONFIGURATION block, which includes only deterministic components.
+The mode also does not test probabilistic or stochastic behaviors. If a calculation involves a random variable, a distribution, or a Monte Carlo simulation, it belongs to Mode 7 (`/spec-monte-carlo-validation`), which uses different techniques: fixed seeds, repeated runs, statistical confidence intervals, and formal hypothesis tests. Mode 6 is strictly for behaviors that are deterministic — given the same inputs, they always produce the same output. Tax brackets, RMD divisors, compound interest formulas, and accounting identities are all deterministic. The mode is named for this property, and it is enforced by the component list in the PROJECT CONFIGURATION block, which includes only deterministic components.
 
 ## The Deliverable Format — A Complete Example
 
@@ -668,11 +668,11 @@ The mode also does not test probabilistic or stochastic behaviors. If a calculat
 ```
 ---
 
-The output of Mode 4 is the `deterministic-validation-report.md` artifact. Here is an excerpt showing what a complete component validation looks like in the report:
+The output of Mode 6 is the `deterministic-validation-report.md` artifact. Here is an excerpt showing what a complete component validation looks like in the report:
 
 ```markdown
 # Deterministic Validation Report
-**Generated:** Mode 4 — /spec-deterministic-validation
+**Generated:** Mode 6 — /spec-deterministic-validation
 **Spec freeze tag:** spec-freeze-2026-02-21
 **Date:** 2026-02-21
 
@@ -751,7 +751,7 @@ The format makes the failure mode visible and actionable. A FAIL on Component F 
 
 ## Putting It Together: Why This Mode Cannot Be Skipped
 
-The pipeline gates at `engineering/spec-freeze.lock` enforce sequential order. Mode 4 checks for this file before doing anything. If it doesn't exist, the mode stops. This is not a convention — it is a hard stop.
+The pipeline gates at `engineering/spec-freeze.lock` enforce sequential order. Mode 6 checks for this file before doing anything. If it doesn't exist, the mode stops. This is not a convention — it is a hard stop.
 
 ---
 **`/spec-deterministic-validation` instructions — §PREREQUISITE — SPEC FREEZE VERIFICATION:**
@@ -767,8 +767,8 @@ The lock file is the gate. No lock file = no execution.
 ```
 ---
 
-The gate is enforced mechanically because the temptation to skip Mode 4 is strongest precisely when it matters most. Under schedule pressure, acceptance tests look like optional overhead — you have unit tests, you have the spec, the code is already being written. But "the code is already being written" means Mode 4 has failed at its primary purpose: establishing external-authority test targets before implementation begins. A Mode 4 run after the code exists is weaker because the test author has the code in front of them and may unconsciously anchor expected values to what the code produces rather than what the IRS table says.
+The gate is enforced mechanically because the temptation to skip Mode 6 is strongest precisely when it matters most. Under schedule pressure, acceptance tests look like optional overhead — you have unit tests, you have the spec, the code is already being written. But "the code is already being written" means Mode 6 has failed at its primary purpose: establishing external-authority test targets before implementation begins. A Mode 6 run after the code exists is weaker because the test author has the code in front of them and may unconsciously anchor expected values to what the code produces rather than what the IRS table says.
 
 The mode occupies its position in the pipeline — after spec freeze, before implementation — because that is when it is strongest. When tests written from external authorities disagree with tests written from specs, the discrepancy is visible before any code is written to satisfy either set of tests. The spec author and the test author together can identify whether the spec is wrong, whether the external source was misread, or whether there is genuine ambiguity in the regulatory rule. That conversation happens in a spec revision, before it becomes embedded in code.
 
-Mode 4 is where the cost of being wrong is still low. By Mode 8, a wrong assumption has been implemented, tested, integrated, and connected to other components that depend on it. Fixing it requires changing code in multiple places. In Mode 4, fixing it requires changing a test comment and recomputing an expected value. The question Mode 4 forces is direct: are your tests anchored to reality, or just to your own prior assumptions? The IRS table does not care what your spec says. The accounting identity does not care what your implementation does. The existing-art test suite enforces this, and the spec freeze gate ensures you can't skip it.
+Mode 6 is where the cost of being wrong is still low. By Mode 10, a wrong assumption has been implemented, tested, integrated, and connected to other components that depend on it. Fixing it requires changing code in multiple places. In Mode 6, fixing it requires changing a test comment and recomputing an expected value. The question Mode 6 forces is direct: are your tests anchored to reality, or just to your own prior assumptions? The IRS table does not care what your spec says. The accounting identity does not care what your implementation does. The existing-art test suite enforces this, and the spec freeze gate ensures you can't skip it.

@@ -1,14 +1,14 @@
-# Chapter 10: The Fidelity Audit
+# Chapter 12: The Fidelity Audit
 
 ## After Implementation, the Hard Question
 
-Mode 8 is done. Tests are green. Production code exists for every module. The frozen specs drove implementation, the test suite verified it, and CI enforced it. So now what?
+Mode 10 is done. Tests are green. Production code exists for every module. The frozen specs drove implementation, the test suite verified it, and CI enforced it. So now what?
 
 Now you ask the hard question: does the code actually do what the specs say?
 
 Green tests are necessary but not sufficient. A test suite can pass while the implementation silently misses a behavior the spec describes, adds a behavior no spec sanctions, or subtly diverges from a spec's intent. The test suite verifies what it tests. It does not verify what it does not test. If a spec behavior has no corresponding test (because the test was disabled, because it was missed in generation, because it fell through a crack), the passing build tells you nothing about whether that behavior is implemented.
 
-Mode 8b exists to catch these gaps. It sits between implementation (Mode 8) and traceability (Mode 9) because it answers a question that must be settled before the codebase can be considered complete. If the implementation has unresolved fidelity gaps, a traceability matrix built on top of it maps incomplete implementation to specs and declares the mapping valid. The fidelity audit prevents that.
+Mode 11 exists to catch these gaps. It sits between implementation (Mode 10) and traceability (Mode 12) because it answers a question that must be settled before the codebase can be considered complete. If the implementation has unresolved fidelity gaps, a traceability matrix built on top of it maps incomplete implementation to specs and declares the mapping valid. The fidelity audit prevents that.
 
 ## Prerequisites
 
@@ -24,7 +24,7 @@ If absent: stop immediately. Inform the user that spec-fidelity cannot run until
 
 The spec freeze lock is the same gate that controls every mode from 4 onward. The fidelity audit compares code against specs. If the specs are not frozen, they could change during the audit, and the audit's findings would be invalid before it finishes. The lock file is a precondition, not a suggestion.
 
-This mode also assumes that Mode 8 is complete. Production code and tests exist. The skill file states this directly: "This skill runs after spec-execution is complete. It assumes production code and tests exist." There is no explicit artifact gate for Mode 8 completion (unlike Mode 7's test-gen-report.md), but the audit cannot produce meaningful findings against code that does not exist yet.
+This mode also assumes that Mode 10 is complete. Production code and tests exist. The skill file states this directly: "This skill runs after spec-execution is complete. It assumes production code and tests exist." There is no explicit artifact gate for Mode 10 completion (unlike Mode 9's test-gen-report.md), but the audit cannot produce meaningful findings against code that does not exist yet.
 
 ## The Three Questions
 
@@ -52,7 +52,7 @@ These three questions organize the entire audit. They are not three separate aud
 
 ```mermaid
 flowchart TD
-    CODE["Production Codebase\n(post Mode 8)"]
+    CODE["Production Codebase\n(post Mode 10)"]
     CODE --> LensA["Lens A: Completeness\nIs every spec behavior\npresent in the code?"]
     CODE --> LensB["Lens B: Faithfulness\nDoes the code match\nthe spec's semantics?"]
     CODE --> LensC["Lens C: Containment\nDoes the code do ONLY\nwhat the specs sanction?"]
@@ -463,10 +463,10 @@ Two of these rules deserve emphasis.
 
 "Grep first, read second" prevents a common failure mode where the auditor reads a file, remembers seeing a method name, and asserts that the behavior is implemented. Memory is unreliable. Grep output is evidence. The raw grep output must appear in the Tier 1 evidence block before any claim about implementation status.
 
-"No auto-fix" is the boundary between Mode 8b and Mode 8. The fidelity audit reports. It does not fix. Fixing production code, adjusting tests, or revising specs in response to findings is a separate action that requires the engineer's direction. The skill asks "Fix all gaps?" after completing all phases and waits for a response.
+"No auto-fix" is the boundary between Mode 11 and Mode 10. The fidelity audit reports. It does not fix. Fixing production code, adjusting tests, or revising specs in response to findings is a separate action that requires the engineer's direction. The skill asks "Fix all gaps?" after completing all phases and waits for a response.
 
-## Gating Mode 9
+## Gating Mode 12
 
-The fidelity report (`engineering/artifacts/implementation-fidelity-report.md`) gates Mode 9 (spec-traceability). If the report shows MISSING behaviors, faithfulness deviations, or spec violations, the traceability matrix built in Mode 9 would map an incomplete or incorrect implementation to specs and declare the mapping valid. The fidelity audit prevents that by ensuring the implementation is faithful, contained, and complete before the traceability matrix locks it down.
+The fidelity report (`engineering/artifacts/implementation-fidelity-report.md`) gates Mode 12 (spec-traceability). If the report shows MISSING behaviors, faithfulness deviations, or spec violations, the traceability matrix built in Mode 12 would map an incomplete or incorrect implementation to specs and declare the mapping valid. The fidelity audit prevents that by ensuring the implementation is faithful, contained, and complete before the traceability matrix locks it down.
 
 A PASS verdict means the implementation matches the spec surface. Every spec behavior is present, the sampled behaviors are faithful to their specs, and no undocumented observable behavior exists outside the spec surface. The traceability matrix can now map this implementation with confidence. A FAIL verdict means gaps exist that must be resolved first, either by implementing missing behaviors, correcting deviations, or filing formal spec revision requests for behaviors that the spec does not yet cover.

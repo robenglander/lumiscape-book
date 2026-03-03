@@ -42,71 +42,71 @@ None of this is new. Formal specifications, behavioral contracts, and traceabili
 
 ## The Pipeline Structure
 
-The Lumiscape engineering workflow is a sequential, artifact-gated pipeline with nine modes. Each mode has a specific job, produces a specific artifact, and gates the next mode on whether that artifact passes. You cannot begin implementation until all the preceding gates have cleared. This is the key structural property: the gates enforce the order of operations, and the artifacts provide a permanent record of what was validated at each stage.
+The Lumiscape engineering workflow is a sequential, artifact-gated pipeline with twelve modes. Each mode has a specific job, produces a specific artifact, and gates the next mode on whether that artifact passes. You cannot begin implementation until all the preceding gates have cleared. This is the key structural property: the gates enforce the order of operations, and the artifacts provide a permanent record of what was validated at each stage.
 
-The modes govern when the spec surface is stable enough for a given kind of work. They do not gate when anyone writes code. Engineers write code throughout the project lifecycle, directing the LLM, editing files directly, or both. Code written outside Mode 8, or ahead of the spec surface, is normal engineering behavior. The drift marker discipline handles it, and it is covered in the Mode 8 section below.
+The modes govern when the spec surface is stable enough for a given kind of work. They do not gate when anyone writes code. Engineers write code throughout the project lifecycle, directing the LLM, editing files directly, or both. Code written outside Mode 10, or ahead of the spec surface, is normal engineering behavior. The drift marker discipline handles it, and it is covered in the Mode 10 section below.
 
 The pipeline looks like this:
 
 ```
-Mode 1  — Spec Authoring                  (free form)
-Mode 2  — /spec-review                    → spec-compliance-report.md
-Mode 2b — /spec-deep-review               → cross-spec consistency report
-Mode 2c — /spec-coherence                 → coherence-report.md
-Mode 3  — Spec Freeze                     → engineering/spec-freeze.lock
-Mode 4  — /spec-deterministic-validation  → deterministic-validation-report.md
-Mode 5  — /spec-monte-carlo-validation    → monte-carlo-validation-report.md
-Mode 6  — /spec-integration               → integration-validation-report.md
-Mode 7  — /spec-test-gen                  → test-gen-report.md
-Mode 8  — /spec-execution                 → production code (tests green)
-Mode 8b — /spec-fidelity                  → implementation-fidelity-report.md
-Mode 9  — /spec-traceability              → traceability-matrix.md
+Mode 1  — Spec Authoring                 (free form)
+Mode 2  — /spec-review                   → spec-compliance-report.md
+Mode 3  — /spec-deep-review              → cross-spec consistency report
+Mode 4  — /spec-coherence                → coherence-report.md
+Mode 5  — Spec Freeze                    → engineering/spec-freeze.lock
+Mode 6  — /spec-deterministic-validation → deterministic-validation-report.md
+Mode 7  — /spec-monte-carlo-validation   → monte-carlo-validation-report.md
+Mode 8  — /spec-integration              → integration-validation-report.md
+Mode 9  — /spec-test-gen                 → test-gen-report.md
+Mode 10 — /spec-execution                → production code (tests green)
+Mode 11 — /spec-fidelity                 → implementation-fidelity-report.md
+Mode 12 — /spec-traceability             → traceability-matrix.md
 ```
 
 ```mermaid
 flowchart TD
     M1["Mode 1: Spec Authoring"] --> M2["Mode 2: Spec Review"]
-    M2 --> |"spec-compliance-report.md"| M2b["Mode 2b: Deep Review"]
-    M2b --> |"cross-spec consistency"| M2c["Mode 2c: Spec Coherence"]
-    M2c --> |"coherence-report.md"| M3["Mode 3: Spec Freeze"]
-    M3 --> |"spec-freeze.lock"| M4["Mode 4: Deterministic Validation"]
-    M4 --> |"deterministic-validation-report.md"| M5["Mode 5: Monte Carlo Validation"]
-    M5 --> |"monte-carlo-validation-report.md"| M6["Mode 6: Integration"]
-    M6 --> |"integration-validation-report.md"| M7["Mode 7: Test Generation"]
-    M7 --> |"test-gen-report.md"| M8["Mode 8: Implementation"]
-    M8 --> |"tests green"| M8b["Mode 8b: Fidelity Audit"]
-    M8b --> |"implementation-fidelity-report.md"| M9["Mode 9: Traceability"]
-    M9 --> |"traceability-matrix.md"| DONE["Complete"]
+    M2 --> |"spec-compliance-report.md"| M3["Mode 3: Deep Review"]
+    M3 --> |"cross-spec consistency"| M4["Mode 4: Spec Coherence"]
+    M4 --> |"coherence-report.md"| M5["Mode 5: Spec Freeze"]
+    M5 --> |"spec-freeze.lock"| M6["Mode 6: Deterministic Validation"]
+    M6 --> |"deterministic-validation-report.md"| M7["Mode 7: Monte Carlo Validation"]
+    M7 --> |"monte-carlo-validation-report.md"| M8["Mode 8: Integration"]
+    M8 --> |"integration-validation-report.md"| M9["Mode 9: Test Generation"]
+    M9 --> |"test-gen-report.md"| M10["Mode 10: Implementation"]
+    M10 --> |"tests green"| M11["Mode 11: Fidelity Audit"]
+    M11 --> |"implementation-fidelity-report.md"| M12["Mode 12: Traceability"]
+    M12 --> |"traceability-matrix.md"| DONE["Complete"]
 
-    style M3 fill:#f9f,stroke:#333
+    style M5 fill:#f9f,stroke:#333
     style DONE fill:#9f9,stroke:#333
 ```
 
 ### Why Sequential and Artifact-Gated
 
-The pipeline is sequential because the outputs of earlier modes are inputs to later modes. Mode 2 produces a set of behavior IDs that Mode 4 needs to verify coverage against. Mode 4 produces golden-case acceptance tests that Mode 7 uses as input for test generation. Mode 3's lock file is a hard gate that every downstream skill checks before doing anything. The sequence is not arbitrary; it is the order in which confidence about the system accumulates.
+The pipeline is sequential because the outputs of earlier modes are inputs to later modes. Mode 2 produces a set of behavior IDs that Mode 6 needs to verify coverage against. Mode 6 produces golden-case acceptance tests that Mode 9 uses as input for test generation. Mode 5's lock file is a hard gate that every downstream skill checks before doing anything. The sequence is not arbitrary; it is the order in which confidence about the system accumulates.
 
-Artifact-gated means no mode can proceed until its predecessor's artifact exists and has passed. The gate is not a social convention. It is technical. Every skill in Modes 4 through 9 begins by checking for `engineering/spec-freeze.lock`. If that file does not exist, the skill stops immediately and refuses to proceed. The check happens in the first lines of the skill, before any analysis, before any file reads. There is no way to accidentally skip it.
+Artifact-gated means no mode can proceed until its predecessor's artifact exists and has passed. The gate is not a social convention. It is technical. Every skill in Modes 6 through 12 begins by checking for `engineering/spec-freeze.lock`. If that file does not exist, the skill stops immediately and refuses to proceed. The check happens in the first lines of the skill, before any analysis, before any file reads. There is no way to accidentally skip it.
 
 What "gated" means in practice: the cost of skipping a step is explicit, not hidden. You cannot run spec-execution without a lock file. You cannot have a lock file without running spec-review. If you want to start implementation before running spec-deep-review, you have to explicitly choose to skip it and document that choice. The pipeline does not prevent bad decisions; it makes them visible.
 
-Sequential means the forward direction: later modes build on earlier ones. It does not mean linear in the waterfall sense. Later modes regularly return you to earlier ones. Mode 4 might reveal an incorrect golden case, requiring an unfreeze and a spec correction before the test can be trusted. Mode 6 might find a semantic mismatch between the two engines, requiring a design decision before the integration can pass. Mode 8 might surface a contradiction no validation caught, requiring a Formal Spec Revision Request and a spec revision before implementation continues. These are not process failures. They are what the process is designed to surface. Every unfreeze, revision, and re-freeze is documented in the lock file. The iterations are explicit and traceable.
+Sequential means the forward direction: later modes build on earlier ones. It does not mean linear in the waterfall sense. Later modes regularly return you to earlier ones. Mode 6 might reveal an incorrect golden case, requiring an unfreeze and a spec correction before the test can be trusted. Mode 8 might find a semantic mismatch between the two engines, requiring a design decision before the integration can pass. Mode 10 might surface a contradiction no validation caught, requiring a Formal Spec Revision Request and a spec revision before implementation continues. These are not process failures. They are what the process is designed to surface. Every unfreeze, revision, and re-freeze is documented in the lock file. The iterations are explicit and traceable.
 
-### Why Mode 2, 2b, and 2c Are Separate
+### Why Modes 2, 3, and 4 Are Separate
 
 Mode 2 is a per-spec quality gate. It operates on one spec at a time and checks whether that spec is structurally complete: does it have behavior IDs, validation rules, acceptance tests, architecture metadata, and an out-of-scope section? These checks require reading one file and verifying its structure. They do not require any knowledge of other specs.
 
-Mode 2b operates at the system level. It looks across every spec in every module simultaneously. The checks it performs, including dependent spec drift, stale vocabulary, count mismatches, and conflicting assertions, cannot be done per-spec because they require comparing two or more specs against each other. You could pass Mode 2 on every individual spec in the system and still have a system-level inconsistency that Mode 2b would catch.
+Mode 3 operates at the system level. It looks across every spec in every module simultaneously. The checks it performs, including dependent spec drift, stale vocabulary, count mismatches, and conflicting assertions, cannot be done per-spec because they require comparing two or more specs against each other. You could pass Mode 2 on every individual spec in the system and still have a system-level inconsistency that Mode 3 would catch.
 
-The reason they are separate is cognitive scope. Mode 2 is a quality check that spec authors can run immediately after writing a spec, with a narrow scope and fast feedback. Mode 2b is an expensive, comprehensive audit that makes sense to run in batches: after a wave of related changes, or before freezing the spec surface. Merging them would mean running the cross-spec audit for every individual spec change, which is wasteful. Separating them means each mode runs at the right cadence.
+The reason they are separate is cognitive scope. Mode 2 is a quality check that spec authors can run immediately after writing a spec, with a narrow scope and fast feedback. Mode 3 is an expensive, comprehensive audit that makes sense to run in batches: after a wave of related changes, or before freezing the spec surface. Merging them would mean running the cross-spec audit for every individual spec change, which is wasteful. Separating them means each mode runs at the right cadence.
 
-Mode 2c (`/spec-coherence`) is also separate from Mode 2b, for a different reason: it uses a fundamentally different methodology. Mode 2b is grep-based. It searches for known stale terms, known count values, known deleted construct names. Its checks are mechanical: grep, read result, assert PASS or flag. You can enumerate the checks in advance because you know what can go wrong.
+Mode 4 (`/spec-coherence`) is also separate from Mode 3, for a different reason: it uses a fundamentally different methodology. Mode 3 is grep-based. It searches for known stale terms, known count values, known deleted construct names. Its checks are mechanical: grep, read result, assert PASS or flag. You can enumerate the checks in advance because you know what can go wrong.
 
-Mode 2c does not enumerate checks in advance. It reads and traces. It picks an entry point, follows a data value through the Architecture Metadata dependency graph from spec to spec, and at each handoff asks: does the consumer expect exactly what the producer provides? The failures it catches, including contract mismatches, semantic disagreements, and lifecycle gaps, are not visible to any grep. They only surface when you follow the flow all the way through. Mode 2b runs when vocabulary changes. Mode 2c runs when contracts need tracing.
+Mode 4 does not enumerate checks in advance. It reads and traces. It picks an entry point, follows a data value through the Architecture Metadata dependency graph from spec to spec, and at each handoff asks: does the consumer expect exactly what the producer provides? The failures it catches, including contract mismatches, semantic disagreements, and lifecycle gaps, are not visible to any grep. They only surface when you follow the flow all the way through. Mode 3 runs when vocabulary changes. Mode 4 runs when contracts need tracing.
 
-### Why Mode 3 Is a Human Step
+### Why Mode 5 Is a Human Step
 
-Mode 3, the spec freeze, is the only mode that cannot be automated. Every other mode is a skill that Claude executes. The freeze is a human decision: you have decided that the specs are complete, that you are done discovering requirements, and that you are ready to commit to implementation. No algorithm can make that call. It requires judgment about project scope, timeline, stakeholder alignment, and risk tolerance.
+Mode 5, the spec freeze, is the only mode that cannot be automated. Every other mode is a skill that Claude executes. The freeze is a human decision: you have decided that the specs are complete, that you are done discovering requirements, and that you are ready to commit to implementation. No algorithm can make that call. It requires judgment about project scope, timeline, stakeholder alignment, and risk tolerance.
 
 The mechanic is deliberate: you write a lock file, create a git tag, and commit. If you later discover a gap, you have to explicitly unfreeze, make the revision, and refreeze. This process makes every post-freeze spec change visible and traceable. In the Lumiscape project, the lock file grew over time to document eight formal revisions, each with a reason and a list of affected specs. That history is invaluable when you are in the middle of implementation and wonder "why does this spec say X instead of Y?"; the lock file tells you exactly when it changed and why.
 
@@ -126,7 +126,7 @@ My job is different. When I make a decision in module A, I am holding module B i
 
 Once I stopped trying to fix this by arguing with the tool, the solution was obvious: externalize the constraints. Write them into specs. Lock them into artifacts. Enforce them with gates. Do not describe the system in a prompt; encode it in a structure the model operates within.
 
-The nine modes are that structure. The engineer holds global coherence, cross-spec alignment, and long-horizon integrity. The model executes the current instruction window against a surface the engineer controls. The pipeline separates those two jobs and keeps them from colliding.
+The twelve modes are that structure. The engineer holds global coherence, cross-spec alignment, and long-horizon integrity. The model executes the current instruction window against a surface the engineer controls. The pipeline separates those two jobs and keeps them from colliding.
 
 The conversation did not stop. You are still talking to the model. Each mode runs in a Claude conversation: you invoke the skill, the model reads the spec files, runs the checks, and reports findings. What changed is what the model has access to when you start talking: not a free-form description of the system in the prompt, but a structured surface — specs, skill instructions, lock files — that constrain what the model can do and require it to show its work. The problem was never conversation. It was ungrounded conversation.
 
@@ -178,7 +178,7 @@ A concrete example of a failing spec illustrates what Mode 2 catches. Consider a
 
 > **B-003:** The system will compute the RMD amount for traditional IRA accounts. The exact RMD calculation logic will be deferred to implementation based on the IRS divisor table that is in effect at that time.
 
-Mode 2 catches two violations here. The word "deferred" is a prohibited term; it belongs in the Out of Scope section, not in a core behavior. And the phrase "at that time" means the spec is not pinning the table version, which means any test written against this behavior cannot be deterministic. Mode 4 would later flag this as `AMBIGUITY: FAIL` because RMD calculations depend on a specific IRS publication year, and an unpinned reference is untestable against external authority.
+Mode 2 catches two violations here. The word "deferred" is a prohibited term; it belongs in the Out of Scope section, not in a core behavior. And the phrase "at that time" means the spec is not pinning the table version, which means any test written against this behavior cannot be deterministic. Mode 6 would later flag this as `AMBIGUITY: FAIL` because RMD calculations depend on a specific IRS publication year, and an unpinned reference is untestable against external authority.
 
 What a compliant version looks like:
 
@@ -190,25 +190,25 @@ The difference is testable precision. The first version cannot be tested without
 
 Mode 2 also enforces the architecture metadata requirement as a hard stop. If the `## Architecture Metadata` table is missing or incomplete, Mode 2 halts spec review immediately and refuses to continue. This is not a soft warning; the table is a prerequisite for test generation and traceability. A spec without metadata cannot participate in the pipeline.
 
-### Mode 2b: Cross-Spec Consistency at System Scale
+### Mode 3: Cross-Spec Consistency at System Scale
 
-Mode 2b (`/spec-deep-review`) operates at the system level. It looks across the entire spec surface for inconsistencies that no per-spec review would catch. The core problem it solves: a spec can be perfectly well-formed on its own and still be inconsistent with three other specs in ways that make the system impossible to implement correctly.
+Mode 3 (`/spec-deep-review`) operates at the system level. It looks across the entire spec surface for inconsistencies that no per-spec review would catch. The core problem it solves: a spec can be perfectly well-formed on its own and still be inconsistent with three other specs in ways that make the system impossible to implement correctly.
 
-The methodology is explicit: grep first, read second. Mode 2b is required to show raw grep results before asserting PASS on any check. It never relies on memory or prior knowledge. Every pass-or-fail conclusion is grounded in search evidence. This is not bureaucracy; it is the only approach that scales to a spec surface of 50+ files without missing things.
+The methodology is explicit: grep first, read second. Mode 3 is required to show raw grep results before asserting PASS on any check. It never relies on memory or prior knowledge. Every pass-or-fail conclusion is grounded in search evidence. This is not bureaucracy; it is the only approach that scales to a spec surface of 50+ files without missing things.
 
 This principle is formalized as the NO-MEMORY RULE and applies to every mode in the pipeline. Every behavioral claim must be grounded in a tool call from the current session. Prior knowledge about what a spec "should" contain is not evidence. Only current file contents on disk are authoritative. A spec read in a prior session may have changed since then. A spec read earlier in a long session may have been compacted out of context. The rule closes both gaps: grep the file, read the section, show the result.
 
 The checks are organized into phases:
 
-**Phase 1: Dependent spec drift.** Certain specs maintain their own copy of a list that is normatively defined in another spec. When the normative source changes, the copy drifts. Phase 1 reads the normative source and the dependent spec side by side and compares them item by item. Any item present in one list but absent from the other is flagged as a conflict. In Lumiscape, the grammar vocabulary in LUM-AI-018 has ten dependent specs that reference its action, target, and parameter lists. When the `life_events` grouped what_if target was replaced with eight fine-grained targets, Mode 2b caught that five dependent specs still referenced the old target, none of which would have failed Mode 2.
+**Phase 1: Dependent spec drift.** Certain specs maintain their own copy of a list that is normatively defined in another spec. When the normative source changes, the copy drifts. Phase 1 reads the normative source and the dependent spec side by side and compares them item by item. Any item present in one list but absent from the other is flagged as a conflict. In Lumiscape, the grammar vocabulary in LUM-AI-018 has ten dependent specs that reference its action, target, and parameter lists. When the `life_events` grouped what_if target was replaced with eight fine-grained targets, Mode 3 caught that five dependent specs still referenced the old target, none of which would have failed Mode 2.
 
 **Phase 1b: Canonical enumeration duplication.** A correct copy of a canonical list today is a drift conflict tomorrow. Phase 1b flags any spec that duplicates a canonical list (such as the 4 grammar actions, 8 what_if targets, or 21 EventType values) without a normative delegation statement. The compliant pattern is either pure delegation ("Normatively defined in LUM-AI-018 — do not maintain a separate list here") or delegation-with-copy ("The following replicates LUM-AI-018 §[section]. Do not modify independently — update LUM-AI-018 first"). A spec that lists the values with no delegation note is a violation even if the values are currently correct.
 
 **Phase 2: Stale vocabulary.** When a term is renamed or removed, it does not automatically disappear from all specs. Phase 2 greps for a list of stale terms, such as `life_events`, `LogprobChatClient`, `MonteCarloResults` (renamed to `StochasticResults`), and `capScale` (field removed), and flags any match outside a changelog or historical-note section.
 
-**Phase 4: Cross-spec conflicting assertions.** This is where Mode 2b catches the hardest category of bugs. Consider a scenario where LUM-DTO-016 defines the `Scenario` record with a field named `startDate`, and LUM-VAL-003 validates a field named `startYear` on the same record. Neither spec is wrong on its own terms. Both would pass Mode 2. Together they describe an impossible system: the DTO has one field and the validator is looking for a different field. The validator would compile, run, look for a field that does not exist, and silently produce incorrect validation results. Mode 2b catches this by explicitly checking that validated fields in the validator spec match the fields defined in the DTO spec.
+**Phase 4: Cross-spec conflicting assertions.** This is where Mode 3 catches the hardest category of bugs. Consider a scenario where LUM-DTO-016 defines the `Scenario` record with a field named `startDate`, and LUM-VAL-003 validates a field named `startYear` on the same record. Neither spec is wrong on its own terms. Both would pass Mode 2. Together they describe an impossible system: the DTO has one field and the validator is looking for a different field. The validator would compile, run, look for a field that does not exist, and silently produce incorrect validation results. Mode 3 catches this by explicitly checking that validated fields in the validator spec match the fields defined in the DTO spec.
 
-**Phase 8: Cascade check.** Every conflict triggers a search of all modules for the same stale content. The reason is empirical: in practice, the same error appears in three to five specs simultaneously, because the same change propagated incompletely. Reporting each spec separately obscures the root cause. Mode 2b groups all instances of the same conflict under a single root cause, showing every affected location.
+**Phase 8: Cascade check.** Every conflict triggers a search of all modules for the same stale content. The reason is empirical: in practice, the same error appears in three to five specs simultaneously, because the same change propagated incompletely. Reporting each spec separately obscures the root cause. Mode 3 groups all instances of the same conflict under a single root cause, showing every affected location.
 
 The output format is deliberately precise:
 
@@ -220,15 +220,15 @@ CONFLICT: what_if target `life_events` (should be 8 fine-grained targets)
                  marital_trust, spending, income (per LUM-AI-018 §What_If Change Targets)
 ```
 
-Mode 2b does not fix anything. It reports. After completing all phases, it asks: "Fix all conflicts?" The fix decision is human. Mode 2b's job is to make sure you know exactly what is wrong before you decide what to do about it.
+Mode 3 does not fix anything. It reports. After completing all phases, it asks: "Fix all conflicts?" The fix decision is human. Mode 3's job is to make sure you know exactly what is wrong before you decide what to do about it.
 
-I ran Mode 2b eight times on the Lumiscape spec surface before it came back clean. Each run found something. That is not a sign the process was slow; it is a sign the process was working.
+I ran Mode 3 eight times on the Lumiscape spec surface before it came back clean. Each run found something. That is not a sign the process was slow; it is a sign the process was working.
 
-### Mode 2c: Behavioral Coherence Across Paths
+### Mode 4: Behavioral Coherence Across Paths
 
-Mode 2c (`/spec-coherence`) addresses the failure category that no mechanical check can reach: behavioral incoherence. A spec surface can use the right vocabulary, reference the right specs, and still describe a system that cannot be implemented correctly, because the contracts at each data handoff are wrong.
+Mode 4 (`/spec-coherence`) addresses the failure category that no mechanical check can reach: behavioral incoherence. A spec surface can use the right vocabulary, reference the right specs, and still describe a system that cannot be implemented correctly, because the contracts at each data handoff are wrong.
 
-The mechanism is path tracing. Mode 2c reads a spec, identifies its outputs in the Architecture Metadata table, reads the consuming spec, and verifies the contract at the handoff. Same type. Same nullability. Same semantics. Same constraints. At each handoff it also checks what happens when the input is null, empty, or at a boundary, because those are the cases where contracts most often break down silently.
+The mechanism is path tracing. Mode 4 reads a spec, identifies its outputs in the Architecture Metadata table, reads the consuming spec, and verifies the contract at the handoff. Same type. Same nullability. Same semantics. Same constraints. At each handoff it also checks what happens when the input is null, empty, or at a boundary, because those are the cases where contracts most often break down silently.
 
 The categories of failure it catches:
 
@@ -240,23 +240,23 @@ The categories of failure it catches:
 
 **Ordering conflict:** Spec A assumes calculation X runs before Y. Spec B assumes the reverse. Neither documents the dependency. Both will fail under certain conditions and not others.
 
-Mode 2c uses a chain-hash incremental model. Each spec's chain hash captures its own content and the content of all its transitive dependencies. When a DTO spec changes, every engine spec that depends on it, directly or transitively, gets a dirty chain hash, and those paths get re-traced. Paths with unchanged chain hashes carry forward their previous result. After three incremental runs, the next run is a mandatory full run, which bounds accumulated drift between checks.
+Mode 4 uses a chain-hash incremental model. Each spec's chain hash captures its own content and the content of all its transitive dependencies. When a DTO spec changes, every engine spec that depends on it, directly or transitively, gets a dirty chain hash, and those paths get re-traced. Paths with unchanged chain hashes carry forward their previous result. After three incremental runs, the next run is a mandatory full run, which bounds accumulated drift between checks.
 
-Findings from Mode 2c do not feed back into Mode 2b. They are a different category of problem. Mechanical inconsistencies belong to Mode 2b. Behavioral incoherence belongs to spec authoring. When Mode 2c finds a contract mismatch, someone has to decide which side of the contract is right. That is a design decision, not a vocabulary correction.
+Findings from Mode 4 do not feed back into Mode 3. They are a different category of problem. Mechanical inconsistencies belong to Mode 3. Behavioral incoherence belongs to spec authoring. When Mode 4 finds a contract mismatch, someone has to decide which side of the contract is right. That is a design decision, not a vocabulary correction.
 
-### Mode 3: The Lock File as a Contract
+### Mode 5: The Lock File as a Contract
 
-The lock file at `engineering/spec-freeze.lock` is the single most important architectural decision in the pipeline. Every skill in Modes 4 through 9 checks for this file before doing anything else. If it does not exist, the skill stops and refuses to proceed. No exceptions.
+The lock file at `engineering/spec-freeze.lock` is the single most important architectural decision in the pipeline. Every skill in Modes 6 through 12 checks for this file before doing anything else. If it does not exist, the skill stops and refuses to proceed. No exceptions.
 
 The file itself is not just a sentinel. It contains meaningful state: the freeze confirmation message, the date, the git tag that identifies the frozen commit, and the commit hash. It also accumulates a revision log: every formal spec revision after the initial freeze is documented in the file with a reason, a list of affected specs, and the specific defects that triggered the revision.
 
-In Lumiscape, the lock file documents eight revisions after the initial freeze. Revision R1 documents seven integration defects found by Mode 6 and which specs were changed to address them. Revision R7 documents the dissolution of the `lumiscape-ref-data` module, a structural decision that required moving six repository interfaces and two service classes across module boundaries, driven by circular dependency constraints discovered during implementation. Without the lock file, these decisions would be invisible in the commit history. With it, anyone joining the project can understand the evolution of the spec surface and the decisions that drove it.
+In Lumiscape, the lock file documents eight revisions after the initial freeze. Revision R1 documents seven integration defects found by Mode 8 and which specs were changed to address them. Revision R7 documents the dissolution of the `lumiscape-ref-data` module, a structural decision that required moving six repository interfaces and two service classes across module boundaries, driven by circular dependency constraints discovered during implementation. Without the lock file, these decisions would be invisible in the commit history. With it, anyone joining the project can understand the evolution of the spec surface and the decisions that drove it.
 
 The lock file is a human step because the decision to stop changing requirements is a project management decision, not a technical one. An algorithm cannot know whether you have finished discovering scope. A human has to make that call, accept the friction of the formal revision process for any future changes, and own the decision. The lock file is the artifact that records that decision.
 
 Freezing is also a commitment to live with the revision process if you are wrong. That is not a trivial thing. It should feel like a commitment.
 
-What happens when you run Mode 4 without a lock file:
+What happens when you run Mode 6 without a lock file:
 
 ```
 spec-deterministic-validation cannot begin until the spec freeze is confirmed and the lock file is present.
@@ -269,13 +269,13 @@ The lock file is the gate. No lock file = no execution.
 
 The message is not negotiable. The skill does not offer to create the lock file for you. It does not offer an override flag. It stops and waits.
 
-### Mode 4: Validating Against External Authority
+### Mode 6: Validating Against External Authority
 
-Mode 4 (`/spec-deterministic-validation`) does something different from everything that came before it. Modes 2 and 2b check whether specs are internally consistent and structurally complete. Mode 4 checks whether the specs are correct in the first place, using external authoritative sources, including IRS publications, SSA data, Medicare tables, and actuarial standards, that exist independently of anyone on the team.
+Mode 6 (`/spec-deterministic-validation`) does something different from everything that came before it. Modes 2 and 3 check whether specs are internally consistent and structurally complete. Mode 6 checks whether the specs are correct in the first place, using external authoritative sources, including IRS publications, SSA data, Medicare tables, and actuarial standards, that exist independently of anyone on the team.
 
-The distinction between internal consistency and external correctness matters. You can write a spec for an RMD calculator that is internally consistent, has complete behavior IDs, passes Mode 2, and produces wrong RMD values because someone misread the divisor table. Mode 4 catches this. Mode 2 does not.
+The distinction between internal consistency and external correctness matters. You can write a spec for an RMD calculator that is internally consistent, has complete behavior IDs, passes Mode 2, and produces wrong RMD values because someone misread the divisor table. Mode 6 catches this. Mode 2 does not.
 
-The circularity problem that Mode 4 solves: if you write tests that verify the code matches the spec, and you write the spec before you know the correct answer, you have a circular verification. You are verifying consistency, not correctness. Mode 4 breaks the circularity by introducing a third party: a published authoritative source that neither the spec author nor the developer controls.
+The circularity problem that Mode 6 solves: if you write tests that verify the code matches the spec, and you write the spec before you know the correct answer, you have a circular verification. You are verifying consistency, not correctness. Mode 6 breaks the circularity by introducing a third party: a published authoritative source that neither the spec author nor the developer controls.
 
 A concrete golden case from the Lumiscape deterministic validation report:
 
@@ -291,7 +291,7 @@ That test does not verify that the code matches the spec. It verifies that the s
 
 The distinction is precise: without empirical anchoring, validation measures consistency. With empirical anchoring, it measures correctness.
 
-Mode 4 also enforces year-pinning as a hard requirement. If a spec depends on a rule that varies by year, such as tax bracket tables, RMD divisors, or IRMAA thresholds, and the spec does not pin the year and table edition, Mode 4 flags the component as `AMBIGUITY: FAIL`. An unpinned reference means the test cannot be deterministic across years. The validation report shows the pinning check:
+Mode 6 also enforces year-pinning as a hard requirement. If a spec depends on a rule that varies by year, such as tax bracket tables, RMD divisors, or IRMAA thresholds, and the spec does not pin the year and table edition, Mode 6 flags the component as `AMBIGUITY: FAIL`. An unpinned reference means the test cannot be deterministic across years. The validation report shows the pinning check:
 
 | Component | Rule Type | Spec Pins Year? | Status |
 |-----------|-----------|-----------------|--------|
@@ -301,43 +301,43 @@ Mode 4 also enforces year-pinning as a hard requirement. If a spec depends on a 
 
 Every component that depends on year-varying rules must pin the version, or the validation fails. This is non-negotiable.
 
-The coverage gate in Mode 4 is also non-negotiable: every deterministic behavior ID in the specs must map to at least one acceptance test. If any behavior ID is uncovered, the mode outputs FAIL and lists the missing IDs. Implementation cannot begin with coverage gaps.
+The coverage gate in Mode 6 is also non-negotiable: every deterministic behavior ID in the specs must map to at least one acceptance test. If any behavior ID is uncovered, the mode outputs FAIL and lists the missing IDs. Implementation cannot begin with coverage gaps.
 
-### Mode 5: Stochastic Validation Is a Different Problem
+### Mode 7: Stochastic Validation Is a Different Problem
 
-Mode 5 (`/spec-monte-carlo-validation`) validates the Monte Carlo engine against existing mathematical art. The reason it is a separate mode, rather than an extension of Mode 4, is that stochastic validation requires a fundamentally different set of techniques than deterministic validation.
+Mode 7 (`/spec-monte-carlo-validation`) validates the Monte Carlo engine against existing mathematical art. The reason it is a separate mode, rather than an extension of Mode 6, is that stochastic validation requires a fundamentally different set of techniques than deterministic validation.
 
 Deterministic validation is exact. Given input X, the output must be Y. If it is not Y, it is wrong. You can derive Y from authoritative sources. The test is a single comparison.
 
 Stochastic validation is statistical. Given input X, the output after N runs must satisfy a distributional property. The property is never "the mean is exactly 0.07"; it is "the sample mean falls within the confidence interval around 0.07 consistent with N = 10,000 runs." The tests are non-trivial to design. A poorly designed stochastic test can be flaky, passing 95% of the time and failing 5% of the time even when the implementation is correct, because the statistical test is too tight.
 
-Mode 5 addresses this with explicit requirements: use fixed seeds, specify N large enough to make the confidence interval tight, use formal hypothesis tests (KS or Anderson-Darling) rather than point estimates, and define tolerances explicitly. The seed policy prevents test flakiness: a seeded test runs the same sequence every time, so a test that passes once will pass every time until the implementation changes.
+Mode 7 addresses this with explicit requirements: use fixed seeds, specify N large enough to make the confidence interval tight, use formal hypothesis tests (KS or Anderson-Darling) rather than point estimates, and define tolerances explicitly. The seed policy prevents test flakiness: a seeded test runs the same sequence every time, so a test that passes once will pass every time until the implementation changes.
 
-The degeneracy case is the most important test in Mode 5. When all return volatilities are set to zero and no regime switching is configured, the Monte Carlo engine should produce exactly the same output as the deterministic engine for every path. Success rate should be exactly 0.0 or 1.0; no fractional success rates are possible when every path is identical. The spread between the maximum and minimum terminal portfolio values across all N paths should be at most 2 cents (accommodating integer rounding). This is the degeneracy bridge, and it is the strongest integration test in the system: it verifies that the stochastic engine collapses to the deterministic case under degenerate conditions, which is a mathematical requirement of any correctly implemented Monte Carlo system.
+The degeneracy case is the most important test in Mode 7. When all return volatilities are set to zero and no regime switching is configured, the Monte Carlo engine should produce exactly the same output as the deterministic engine for every path. Success rate should be exactly 0.0 or 1.0; no fractional success rates are possible when every path is identical. The spread between the maximum and minimum terminal portfolio values across all N paths should be at most 2 cents (accommodating integer rounding). This is the degeneracy bridge, and it is the strongest integration test in the system: it verifies that the stochastic engine collapses to the deterministic case under degenerate conditions, which is a mathematical requirement of any correctly implemented Monte Carlo system.
 
-### Mode 6: The Two-Engine Problem
+### Mode 8: The Two-Engine Problem
 
-Mode 6 (`/spec-integration`) validates the bridge between the deterministic and Monte Carlo engines. Both engines can pass their individual validations and still be semantically inconsistent with each other. Mode 6's job is to find the inconsistencies.
+Mode 8 (`/spec-integration`) validates the bridge between the deterministic and Monte Carlo engines. Both engines can pass their individual validations and still be semantically inconsistent with each other. Mode 8's job is to find the inconsistencies.
 
 The most important category of integration failure is semantic misalignment: two engines using different definitions for the same concept. This is easy to overlook because each engine's behavior is locally correct. The inconsistency only surfaces when you compare them.
 
 Consider the "success" definition. One engine defines success as "the portfolio has a positive terminal balance." Another defines success as "the portfolio never drops below the spending floor." These are different definitions. A scenario where the portfolio exhausts in year 28 out of a 30-year horizon but recovers to a positive balance by year 30 is "success" by the first definition and "failure" by the second. Both engines are implementing a valid definition. But if the deterministic engine uses one definition and the Monte Carlo engine uses the other, they will give different answers to the same question, and you will have no idea which one is correct.
 
-Mode 6 resolves this by requiring both engines to share identical semantic definitions and testing them against identical scenarios. The test is: run the deterministic engine and the Monte Carlo engine (with σ=0) on the same scenario and compare their outputs. Any difference beyond rounding is a semantic misalignment, a defect that requires a formal spec revision request to resolve.
+Mode 8 resolves this by requiring both engines to share identical semantic definitions and testing them against identical scenarios. The test is: run the deterministic engine and the Monte Carlo engine (with σ=0) on the same scenario and compare their outputs. Any difference beyond rounding is a semantic misalignment, a defect that requires a formal spec revision request to resolve.
 
-In Lumiscape, Mode 6 found seven defects on its first run. The floor definition defect (F-002) is illustrative. The deterministic engine compared terminal portfolio value against an inflation-adjusted floor. The Monte Carlo engine compared against a nominal floor. Both behaviors were specified somewhere in the specs, but the two specs had diverged. The portfolio could look like a success in the deterministic engine (nominal floor, high balance) and a failure in the Monte Carlo engine (real floor, same balance after inflation adjustment), or vice versa. Mode 6 caught this by requiring both engines to produce identical outputs under σ=0 conditions, and they did not. The fix required an explicit semantic decision: the floor is nominal everywhere. That decision is now documented in the lock file as Revision R1.
+In Lumiscape, Mode 8 found seven defects on its first run. The floor definition defect (F-002) is illustrative. The deterministic engine compared terminal portfolio value against an inflation-adjusted floor. The Monte Carlo engine compared against a nominal floor. Both behaviors were specified somewhere in the specs, but the two specs had diverged. The portfolio could look like a success in the deterministic engine (nominal floor, high balance) and a failure in the Monte Carlo engine (real floor, same balance after inflation adjustment), or vice versa. Mode 8 caught this by requiring both engines to produce identical outputs under σ=0 conditions, and they did not. The fix required an explicit semantic decision: the floor is nominal everywhere. That decision is now documented in the lock file as Revision R1.
 
-The parameter propagation check in Mode 6 is also critical. It verifies that deterministic inputs, including starting balances, inflation settings, tax configuration, and spending assumptions, propagate correctly into Monte Carlo runs. An off-by-one error in how the Monte Carlo engine initializes from the deterministic parameters would produce results that are subtly wrong in every run, without any single path being obviously incorrect. Mode 6 catches this by comparing year-by-year balance tables, not just terminal values.
+The parameter propagation check in Mode 8 is also critical. It verifies that deterministic inputs, including starting balances, inflation settings, tax configuration, and spending assumptions, propagate correctly into Monte Carlo runs. An off-by-one error in how the Monte Carlo engine initializes from the deterministic parameters would produce results that are subtly wrong in every run, without any single path being obviously incorrect. Mode 8 catches this by comparing year-by-year balance tables, not just terminal values.
 
-### Mode 7: Test Generation Before Implementation
+### Mode 9: Test Generation Before Implementation
 
-Mode 7 (`/spec-test-gen`) is the structural enforcement of test-first development. Before anyone writes a line of production code, the entire test suite exists. Every acceptance test, every invariant test, every unit test. They all compile. They all fail. That is the starting condition for implementation.
+Mode 9 (`/spec-test-gen`) is the structural enforcement of test-first development. Before anyone writes a line of production code, the entire test suite exists. Every acceptance test, every invariant test, every unit test. They all compile. They all fail. That is the starting condition for implementation.
 
-The prerequisite check is the same as Modes 4 through 6: verify `engineering/spec-freeze.lock` before doing anything else. Test generation against an unfrozen spec surface is pointless; the tests would reference behaviors that could change tomorrow.
+The prerequisite check is the same as Modes 6 through 8: verify `engineering/spec-freeze.lock` before doing anything else. Test generation against an unfrozen spec surface is pointless; the tests would reference behaviors that could change tomorrow.
 
-Mode 7 runs four phases:
+Mode 9 runs four phases:
 
-**Phase 2 (Global Coverage Audit):** Before writing a single test, Mode 7 audits every spec to verify that every behavior ID has a planned test, every validation rule is covered, and no deferral language exists. If coverage gaps exist, Mode 7 halts and reports them. No test generation begins until the audit passes.
+**Phase 2 (Global Coverage Audit):** Before writing a single test, Mode 9 audits every spec to verify that every behavior ID has a planned test, every validation rule is covered, and no deferral language exists. If coverage gaps exist, Mode 9 halts and reports them. No test generation begins until the audit passes.
 
 **Phase 4 (Acceptance Test Generation):** Generates executable acceptance tests using black-box public APIs only. Every test method references exactly one behavior ID in a `// [Spec: LUM-XXX AT-NNN]` comment, tests a single named behavior with a specific expected outcome, and includes at least 2 negative tests per spec and at least 1 boundary test per numeric behavior.
 
@@ -345,15 +345,15 @@ Mode 7 runs four phases:
 
 **Phase 6 (Unit Test Generation):** Generates white-box unit tests for internal logic. These are deterministic, fast, mutation-resistant, and edge-case focused. Targets include pure calculators (tax, RMD, interest, withdrawal math), rounding and precision utilities, validation and error handling, and boundary logic (age thresholds, bracket edges).
 
-The hard rule that makes Mode 7 work: zero placeholder assertions. Every test method body contains real assertions. `assertTrue(true, "placeholder")` is never acceptable output. If the production class does not exist yet, the test is written against the expected public API as if it exists. The test will fail to compile until implementation is written. That is correct. A test that passes before production code exists is not a test.
+The hard rule that makes Mode 9 work: zero placeholder assertions. Every test method body contains real assertions. `assertTrue(true, "placeholder")` is never acceptable output. If the production class does not exist yet, the test is written against the expected public API as if it exists. The test will fail to compile until implementation is written. That is correct. A test that passes before production code exists is not a test.
 
-Mode 7 produces `test-gen-report.md`, which must show zero placeholders, full AT-ID coverage, and all tests compiling (or targeting expected API signatures). Mode 8 cannot begin until this report exists and shows PASS.
+Mode 9 produces `test-gen-report.md`, which must show zero placeholders, full AT-ID coverage, and all tests compiling (or targeting expected API signatures). Mode 10 cannot begin until this report exists and shows PASS.
 
-### Mode 8: Implementation Against Failing Tests
+### Mode 10: Implementation Against Failing Tests
 
-Mode 8 (`/spec-execution`) is where implementation begins. The transition is a role change: Claude stops being a spec author, reviewer, and test writer, and becomes an implementation assistant operating under frozen contracts and a failing test suite. The specs are read-only. The tests are the behavioral authority. Any inconsistency, gap, or conflict that was not caught by the earlier modes must be raised as a Formal Spec Revision Request. Claude does not resolve ambiguity by making a reasonable assumption and moving on; it stops, documents the problem, presents options, and waits for a direction.
+Mode 10 (`/spec-execution`) is where implementation begins. The transition is a role change: Claude stops being a spec author, reviewer, and test writer, and becomes an implementation assistant operating under frozen contracts and a failing test suite. The specs are read-only. The tests are the behavioral authority. Any inconsistency, gap, or conflict that was not caught by the earlier modes must be raised as a Formal Spec Revision Request. Claude does not resolve ambiguity by making a reasonable assumption and moving on; it stops, documents the problem, presents options, and waits for a direction.
 
-Mode 8 verifies three prerequisites before any implementation: the spec freeze lock exists, the test-gen report exists with PASS verdict, and the tests are actually failing. That third check is critical. If the tests already pass before any production code is written, the tests are not testing anything real. Stop and investigate.
+Mode 10 verifies three prerequisites before any implementation: the spec freeze lock exists, the test-gen report exists with PASS verdict, and the tests are actually failing. That third check is critical. If the tests already pass before any production code is written, the tests are not testing anything real. Stop and investigate.
 
 The implementation loop is straightforward:
 
@@ -363,11 +363,11 @@ The implementation loop is straightforward:
 4. Refactor under green
 5. Iterate until all AT IDs pass
 
-Mode 8 governs how code is written through implementation discipline rules: pure calculations isolated from orchestration, deterministic logic isolated from stochastic logic, IO only at boundaries, explicit state transitions, no hidden mutation, no silent fallbacks, no swallowed exceptions. These are not suggestions. They are the constraints that keep the codebase maintainable.
+Mode 10 governs how code is written through implementation discipline rules: pure calculations isolated from orchestration, deterministic logic isolated from stochastic logic, IO only at boundaries, explicit state transitions, no hidden mutation, no silent fallbacks, no swallowed exceptions. These are not suggestions. They are the constraints that keep the codebase maintainable.
 
-Code divergence is not confined to Mode 8. An engineer writes a prototype before any spec exists. A bug gets fixed between validation passes. A refactor improves the structure in ways the spec did not anticipate. This happens throughout the project lifecycle and it is not discouraged. The same markers handle it regardless of when the divergence occurs. `[SPEC-DRIFT]` marks code that has moved ahead of its spec: the implementation is right, but the spec has not caught up yet. `[SPEC-INCOMPLETE]` marks the reverse: the spec is right, but the implementation is not there yet. Every marker carries a spec ID and a one-line description. Mode 8b surfaces all unresolved markers. Zero markers is the target state before Mode 9 begins.
+Code divergence is not confined to Mode 10. An engineer writes a prototype before any spec exists. A bug gets fixed between validation passes. A refactor improves the structure in ways the spec did not anticipate. This happens throughout the project lifecycle and it is not discouraged. The same markers handle it regardless of when the divergence occurs. `[SPEC-DRIFT]` marks code that has moved ahead of its spec: the implementation is right, but the spec has not caught up yet. `[SPEC-INCOMPLETE]` marks the reverse: the spec is right, but the implementation is not there yet. Every marker carries a spec ID and a one-line description. Mode 11 surfaces all unresolved markers. Zero markers is the target state before Mode 12 begins.
 
-Before writing production code for any module, Mode 8 runs a pre-implementation checklist. Every type referenced in the module's specs must be defined in a spec for that module or in a module it already depends on. The module's pom.xml must already declare all required dependencies. All specs for the module must be internally consistent. If any check fails, Claude issues a Formal Spec Revision Request and skips the module entirely.
+Before writing production code for any module, Mode 10 runs a pre-implementation checklist. Every type referenced in the module's specs must be defined in a spec for that module or in a module it already depends on. The module's pom.xml must already declare all required dependencies. All specs for the module must be internally consistent. If any check fails, Claude issues a Formal Spec Revision Request and skips the module entirely.
 
 The Formal Spec Revision Request format is the mechanism that keeps the implementation honest:
 
@@ -392,11 +392,11 @@ Claude does not choose an option. It stops and waits. The user decides. That dec
 
 The format looks like overhead until you are six months into a production incident tracing a decision that nobody wrote down. Then it looks like the cheapest insurance you ever bought.
 
-### Mode 8b: Fidelity Audit
+### Mode 11: Fidelity Audit
 
-Mode 8b (`/spec-fidelity`) is the post-implementation audit. It answers three questions about the production code: is it faithful to the specs, is it contained to what the specs sanction, and is it complete?
+Mode 11 (`/spec-fidelity`) is the post-implementation audit. It answers three questions about the production code: is it faithful to the specs, is it contained to what the specs sanction, and is it complete?
 
-The need for this audit is not obvious until you understand drift laundering. An implementation that is misaligned with the spec can be refined toward internal consistency: all the parts agree with each other, all the tests pass, and the whole has drifted from the original specification. The artifact looks correct. The tests pass. The evidence of misalignment has been smoothed away. Tests generated from the same context as the code cannot catch this class of drift — they were produced from the same interpretation that produced the implementation. Mode 8b catches it by comparing the artifact surface directly against the frozen spec surface, independent of any test suite.
+The need for this audit is not obvious until you understand drift laundering. An implementation that is misaligned with the spec can be refined toward internal consistency: all the parts agree with each other, all the tests pass, and the whole has drifted from the original specification. The artifact looks correct. The tests pass. The evidence of misalignment has been smoothed away. Tests generated from the same context as the code cannot catch this class of drift — they were produced from the same interpretation that produced the implementation. Mode 11 catches it by comparing the artifact surface directly against the frozen spec surface, independent of any test suite.
 
 **Faithful** means the production code implements every spec behavior exactly as described. Not approximately. Exactly. The wrong error type thrown, the wrong threshold used, a missing guard that the spec requires: these are faithfulness deviations.
 
@@ -404,31 +404,31 @@ The need for this audit is not obvious until you understand drift laundering. An
 
 **Complete** means every spec behavior is present in the implementation. Nothing omitted. No stubs, no placeholder methods, no "TODO: implement this."
 
-Mode 8b gates on the spec freeze lock and the test-gen report. It runs in two tiers. Tier 1 launches parallel subagents for mechanical enumeration: extracting all behavior IDs, checking test coverage, finding stubs and placeholders, inventorying public observable behaviors. Tier 2 uses the enumeration evidence to drive targeted code reads and behavioral judgments.
+Mode 11 gates on the spec freeze lock and the test-gen report. It runs in two tiers. Tier 1 launches parallel subagents for mechanical enumeration: extracting all behavior IDs, checking test coverage, finding stubs and placeholders, inventorying public observable behaviors. Tier 2 uses the enumeration evidence to drive targeted code reads and behavioral judgments.
 
-The output is `implementation-fidelity-report.md`, which reports module scorecards with exact counts of missing, untested, and blocked behaviors, faithfulness deviations, and containment flags. Mode 9 cannot begin until the fidelity report shows no MISSING behaviors and no SPEC VIOLATIONS.
+The output is `implementation-fidelity-report.md`, which reports module scorecards with exact counts of missing, untested, and blocked behaviors, faithfulness deviations, and containment flags. Mode 12 cannot begin until the fidelity report shows no MISSING behaviors and no SPEC VIOLATIONS.
 
-### Mode 9: Traceability, Mutation Resilience, and CI Enforcement
+### Mode 12: Traceability, Mutation Resilience, and CI Enforcement
 
-Mode 9 (`/spec-traceability`) is the final mode. It produces the traceability matrix, strengthens tests against common mutations, and verifies CI gate configuration.
+Mode 12 (`/spec-traceability`) is the final mode. It produces the traceability matrix, strengthens tests against common mutations, and verifies CI gate configuration.
 
 The traceability matrix maps every requirement to its full chain: behavior ID to acceptance test to production class to unit test. You can follow this chain in either direction. Given a requirement ID, you find every artifact that touches it. Given a test failure, you trace back to the requirement it protects and the external authority that defines correct behavior.
 
-Mode 9 also performs mutation resilience analysis. For each high-priority test (error handling, boundary conditions, financial calculations), it asks: if a developer made one common mutation to the production code, such as flipping an operator, swapping a comparison, or removing a guard, would this test fail? If the answer is no, the test is not mutation-resistant. Mode 9 strengthens it.
+Mode 12 also performs mutation resilience analysis. For each high-priority test (error handling, boundary conditions, financial calculations), it asks: if a developer made one common mutation to the production code, such as flipping an operator, swapping a comparison, or removing a guard, would this test fail? If the answer is no, the test is not mutation-resistant. Mode 12 strengthens it.
 
-Finally, Mode 9 verifies CI enforcement. The most critical gate is the placeholder detector: a build that allows `assertTrue(true, "placeholder")` anywhere in test code is a build that can silently pass with no real assertions. That single gate prevents the scaffolding drift pattern where thousands of test stubs pass the build while asserting nothing.
+Finally, Mode 12 verifies CI enforcement. The most critical gate is the placeholder detector: a build that allows `assertTrue(true, "placeholder")` anywhere in test code is a build that can silently pass with no real assertions. That single gate prevents the scaffolding drift pattern where thousands of test stubs pass the build while asserting nothing.
 
-Mode 9 produces `traceability-matrix.md`. After this mode passes, the implementation is specified (frozen specs), tested (real assertions, no placeholders), audited (fidelity report PASS), traced (every AT ID mapped), hardened (mutation-resistant tests), and enforced (CI gates present).
+Mode 12 produces `traceability-matrix.md`. After this mode passes, the implementation is specified (frozen specs), tested (real assertions, no placeholders), audited (fidelity report PASS), traced (every AT ID mapped), hardened (mutation-resistant tests), and enforced (CI gates present).
 
 ## The Lock File Gate
 
-The lock file at `engineering/spec-freeze.lock` is the single most important architectural decision in the pipeline. Every skill in Modes 4 through 9 checks for this file before doing anything else. If it does not exist, the skill stops and refuses to proceed. No exceptions.
+The lock file at `engineering/spec-freeze.lock` is the single most important architectural decision in the pipeline. Every skill in Modes 6 through 12 checks for this file before doing anything else. If it does not exist, the skill stops and refuses to proceed. No exceptions.
 
 The reason this gate is valuable: it makes the cost of late spec changes visible. Without a gate, a developer changes a spec during implementation, updates a few tests, and moves on. The change is invisible: it happened in the same week as a dozen other commits, in the same file as other spec updates, with no record of why it changed or what code was written before the change. With a gate, any spec change after freeze requires explicitly unfreezing, making the revision, and re-freezing. The process itself creates a record and creates friction. That friction is the point.
 
 Late spec changes are not a sign of a broken process. They are inevitable; implementation always reveals things that spec authoring missed. The lock file does not prevent late changes; it makes them formal. When you unfreeze to make a revision, you write a reason. When you re-freeze, you update the log. The revision history becomes an engineering record of how the system's design evolved and why.
 
-In the Lumiscape project, the initial freeze was established with a clean spec-review pass across all 11 modules and three consecutive clean Mode 2b runs. Then Mode 6 ran and found seven defects. Those defects drove Revision R1. Mode 6 ran again and found two minor pseudocode inconsistencies. Revision R2. Mode 7's coverage audit found 85 specs missing explicit Out of Scope sections. Revision R3. And so on through eight revisions, each documented. By the time Mode 8 implementation began, the lock file was a complete engineering history of every structural decision made about the spec surface.
+In the Lumiscape project, the initial freeze was established with a clean spec-review pass across all 11 modules and three consecutive clean Mode 3 runs. Then Mode 8 ran and found seven defects. Those defects drove Revision R1. Mode 8 ran again and found two minor pseudocode inconsistencies. Revision R2. Mode 9's coverage audit found 85 specs missing explicit Out of Scope sections. Revision R3. And so on through eight revisions, each documented. By the time Mode 10 implementation began, the lock file was a complete engineering history of every structural decision made about the spec surface.
 
 The value of that history is not auditing. It is debugging. When you are deep in implementation and something does not make sense, such as why a field exists, why a constraint is there, or why a module depends on another, the lock file is the first place to look.
 
@@ -436,7 +436,7 @@ Every one of those eight revisions was something discovered during validation th
 
 ## The Artifact Chain
 
-Each mode produces two artifacts: a human-readable report and a machine-readable manifest. The report is the deliverable. The manifest is the audit trail that proves the work was done and what evidence supports each conclusion. Evidence must be specific. A manifest entry that says "evidence: checked" or "evidence: looks correct" is an audit trail violation. This applies to every mode from 4 onward. When you are deep in Mode 8 implementing a complex calculator and you find what looks like an inconsistency, you can go back to the validation reports and check whether that inconsistency was flagged. If it was flagged and resolved in the spec revision process, you will find the decision documented. If it was not flagged, you have found something the validation missed, which is itself valuable information.
+Each mode produces two artifacts: a human-readable report and a machine-readable manifest. The report is the deliverable. The manifest is the audit trail that proves the work was done and what evidence supports each conclusion. Evidence must be specific. A manifest entry that says "evidence: checked" or "evidence: looks correct" is an audit trail violation. This applies to every mode from 4 onward. When you are deep in Mode 10 implementing a complex calculator and you find what looks like an inconsistency, you can go back to the validation reports and check whether that inconsistency was flagged. If it was flagged and resolved in the spec revision process, you will find the decision documented. If it was not flagged, you have found something the validation missed, which is itself valuable information.
 
 The chain from spec to implementation runs through every artifact:
 
@@ -462,15 +462,15 @@ graph LR
 
 **Specs** contain behavior IDs (B-001, B-002, ...) that are the atomic units of requirement. Every behavior ID gets an acceptance test. Every acceptance test gets coverage in the traceability matrix.
 
-**Mode 4 report** (`deterministic-validation-report.md`) contains golden-case acceptance tests anchored to external authoritative sources. These tests feed into Mode 7, where they are formalized into executable test stubs. The golden cases are not discarded after Mode 4; they become the behavioral authority for the deterministic engine.
+**Mode 6 report** (`deterministic-validation-report.md`) contains golden-case acceptance tests anchored to external authoritative sources. These tests feed into Mode 9, where they are formalized into executable test stubs. The golden cases are not discarded after Mode 6; they become the behavioral authority for the deterministic engine.
 
-**Mode 5 report** (`monte-carlo-validation-report.md`) contains stochastic acceptance tests with explicit N, seed policies, and tolerance bounds. These feed into Mode 7 alongside the deterministic tests.
+**Mode 7 report** (`monte-carlo-validation-report.md`) contains stochastic acceptance tests with explicit N, seed policies, and tolerance bounds. These feed into Mode 9 alongside the deterministic tests.
 
-**Mode 6 report** (`integration-validation-report.md`) documents which semantic alignment checks passed and failed, and which spec revisions resolved the failures. It is the evidence that both engines were compared before implementation began.
+**Mode 8 report** (`integration-validation-report.md`) documents which semantic alignment checks passed and failed, and which spec revisions resolved the failures. It is the evidence that both engines were compared before implementation began.
 
-**Test-gen report** (`engineering/artifacts/test-gen-report.md`) is Mode 7's output: the gate artifact that proves the test suite is complete and contains zero placeholder assertions. Mode 8 cannot begin without it.
+**Test-gen report** (`engineering/artifacts/test-gen-report.md`) is Mode 9's output: the gate artifact that proves the test suite is complete and contains zero placeholder assertions. Mode 10 cannot begin without it.
 
-**Fidelity report** (`engineering/artifacts/implementation-fidelity-report.md`) is Mode 8b's output: proof that the implementation is faithful, contained, and complete relative to the specs. Mode 9 cannot begin without it.
+**Fidelity report** (`engineering/artifacts/implementation-fidelity-report.md`) is Mode 11's output: proof that the implementation is faithful, contained, and complete relative to the specs. Mode 12 cannot begin without it.
 
 **Traceability matrix** (`engineering/artifacts/traceability-matrix.md`) is the final link. Every requirement ID maps to an acceptance test, which maps to the code module that implements it, which maps to the unit tests that protect it.
 
@@ -510,15 +510,15 @@ None of these problems would have survived Mode 2 spec review, which checks for 
 
 Spec review runs on every spec. They all pass. The team proceeds to implementation with confidence. Integration testing begins six weeks later. The validator for `Scenario` is looking for a field called `startYear`, but the `Scenario` DTO has a field called `startDate`. The validator compiles, runs, finds nothing to validate, and silently permits scenarios with invalid start years to pass validation. The downstream engine fails with a confusing arithmetic error when it tries to compute year ranges from a null start year.
 
-Finding this in integration requires reading the validator spec, reading the DTO spec, realizing they describe different fields on the same object, tracing back to where the divergence happened, and then deciding which name is correct. That is a day of debugging what should have been a five-minute grep. Mode 2b would have flagged this on its first run with an exact line number and exact stale text.
+Finding this in integration requires reading the validator spec, reading the DTO spec, realizing they describe different fields on the same object, tracing back to where the divergence happened, and then deciding which name is correct. That is a day of debugging what should have been a five-minute grep. Mode 3 would have flagged this on its first run with an exact line number and exact stale text.
 
 ### Failure Narrative 3: No Validation Modes
 
 Spec review and deep review both run. The specs are clean. The team freezes and begins implementation. Three months into development, a financial domain expert reviews the RMD calculations and discovers that the implementation is using the pre-2022 IRS divisor table, the one that was superseded by SECURE 2.0. Every RMD calculation in the system is producing slightly different values than current IRS requirements. The fix requires updating the divisor table data, updating specs, updating tests, and re-running every calculation that stored results in the database.
 
-Mode 4 would have caught this before implementation began. The golden case `AT-D-001` verifies that the divisor for age 75 is 24.6 (the 2022+ table value). The pre-2022 table had a different divisor for age 75. Any implementation using the old table would have failed `AT-D-001` immediately. The validation mode exists precisely to catch this category of error, where the spec is internally consistent but factually wrong relative to external authority, before a line of production code is written.
+Mode 6 would have caught this before implementation began. The golden case `AT-D-001` verifies that the divisor for age 75 is 24.6 (the 2022+ table value). The pre-2022 table had a different divisor for age 75. Any implementation using the old table would have failed `AT-D-001` immediately. The validation mode exists precisely to catch this category of error, where the spec is internally consistent but factually wrong relative to external authority, before a line of production code is written.
 
-Three months of work, and the fix is a different table. The table was published. It was public. Mode 4 would have caught it on day one.
+Three months of work, and the fix is a different table. The table was published. It was public. Mode 6 would have caught it on day one.
 
 ## The Artifact Lifecycle
 
@@ -526,11 +526,11 @@ One thing that is easy to miss when reading the pipeline description is that the
 
 The spec-review compliance report (`spec-compliance-report.md`) is an input to the freeze decision. You do not freeze until spec review passes.
 
-The deterministic validation report is an input to Mode 7. The golden cases in the report become the behavioral authority for the deterministic engine's acceptance tests. If you change a spec after freeze and re-run Mode 4, you get a new validation report. The new report might invalidate acceptance tests that were derived from the old report. This is the mechanism that keeps the artifact chain consistent: changing a spec after freeze requires re-running validation, which produces new tests, which means the traceability matrix needs to be updated.
+The deterministic validation report is an input to Mode 9. The golden cases in the report become the behavioral authority for the deterministic engine's acceptance tests. If you change a spec after freeze and re-run Mode 6, you get a new validation report. The new report might invalidate acceptance tests that were derived from the old report. This is the mechanism that keeps the artifact chain consistent: changing a spec after freeze requires re-running validation, which produces new tests, which means the traceability matrix needs to be updated.
 
-The integration validation report documents which semantic alignment decisions were made and why. When the implementation assistant in Mode 8 encounters a question about the floor definition, nominal or real, the integration report is the authoritative source of that decision. The report documents that F-002 was resolved by choosing nominal floors everywhere, citing the spec revision (R1) that made it explicit.
+The integration validation report documents which semantic alignment decisions were made and why. When the implementation assistant in Mode 10 encounters a question about the floor definition, nominal or real, the integration report is the authoritative source of that decision. The report documents that F-002 was resolved by choosing nominal floors everywhere, citing the spec revision (R1) that made it explicit.
 
-The traceability matrix is Mode 9's final artifact, but it is also a living document. As implementation progresses through Mode 8, tests accumulate real assertions. Mode 8b audits completeness and faithfulness. Then Mode 9 fills in the matrix with actual code locations and test class names. A gap in the matrix, a behavior ID with no code location, is a signal that something was not implemented. The matrix makes the gaps visible.
+The traceability matrix is Mode 12's final artifact, but it is also a living document. As implementation progresses through Mode 10, tests accumulate real assertions. Mode 11 audits completeness and faithfulness. Then Mode 12 fills in the matrix with actual code locations and test class names. A gap in the matrix, a behavior ID with no code location, is a signal that something was not implemented. The matrix makes the gaps visible.
 
 ## Adapting This Workflow
 
@@ -585,12 +585,12 @@ Everything else works as-is. The infrastructure is reusable. The project-specifi
 
 ```mermaid
 flowchart LR
-    A["Spec Author\n(Modes 1-2c)"] --> B["Freeze Decision\n(Mode 3)"]
-    B --> C["Validator\n(Modes 4-6)"]
-    C --> D["Test Author\n(Mode 7)"]
-    D --> E["Implementer\n(Mode 8)"]
-    E --> F["Auditor\n(Mode 8b)"]
-    F --> G["Tracer\n(Mode 9)"]
+    A["Spec Author\n(Modes 1-4)"] --> B["Freeze Decision\n(Mode 5)"]
+    B --> C["Validator\n(Modes 6-8)"]
+    C --> D["Test Author\n(Mode 9)"]
+    D --> E["Implementer\n(Mode 10)"]
+    E --> F["Auditor\n(Mode 11)"]
+    F --> G["Tracer\n(Mode 12)"]
 ```
 
 ## The Engineering Contract

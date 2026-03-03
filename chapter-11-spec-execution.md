@@ -1,8 +1,8 @@
-# Chapter 9: Implementing Under Frozen Contracts
+# Chapter 11: Implementing Under Frozen Contracts
 
 ## The Transition
 
-Seven modes of specification, review, validation, and test generation, and now the specs are frozen, the full test suite exists and fails, and both engines have been validated for semantic consistency. Time to write code. But the transition from test author to implementer is not automatic, and it changes Claude's role in a way most engineers underestimate until they get it wrong.
+Nine modes of specification, review, validation, and test generation, and now the specs are frozen, the full test suite exists and fails, and both engines have been validated for semantic consistency. Time to write code. But the transition from test author to implementer is not automatic, and it changes Claude's role in a way most engineers underestimate until they get it wrong.
 
 ---
 **`/spec-execution` instructions — §PREREQUISITE — SPEC FREEZE VERIFICATION:**
@@ -21,7 +21,7 @@ Before any implementation begins, verify ALL of the following:
 ```
 ---
 
-Mode 8 gates on two artifacts: the spec freeze lock and the test-gen report from Mode 7. The third prerequisite is behavioral: the tests must actually be failing. If the tests already pass before any production code is written, they are not real tests.
+Mode 10 gates on two artifacts: the spec freeze lock and the test-gen report from Mode 9. The third prerequisite is behavioral: the tests must actually be failing. If the tests already pass before any production code is written, they are not real tests.
 
 As a spec author, reviewer, and test writer, Claude's job is to find gaps, flag ambiguities, and ensure completeness. Interpretation is appropriate — you are helping the engineer express intent precisely. When you see "compute the applicable tax," you ask whether that means the marginal rate, the effective rate, or the total dollar amount, and you push until the spec is clear. Judgment calls are not just allowed, they are required — when two reasonable interpretations exist, you ask which one the engineer intends. You are a thought partner, sharpening the spec.
 
@@ -44,7 +44,7 @@ flowchart TD
     P1 --> DISC["Implementation Discipline\n(architectural separation,\ndeterminism, state, IO)"]
     DISC --> CHECK["Pre-Implementation\nModule Checklist\n(types, deps, consistency)"]
     CHECK --> LOOP["Implementation Loop\n(red → green → refactor)"]
-    LOOP --> DONE["All tests green\n→ Mode 8b (fidelity audit)"]
+    LOOP --> DONE["All tests green\n→ Mode 11 (fidelity audit)"]
 
     style LOCK fill:#fef3c7
     style LOOP fill:#dcfce7
@@ -271,7 +271,7 @@ The distinction between STOP and JUDGMENT conflicts is consistently: does resolv
 
 ## The Test Suite Is Already Here
 
-By the time Mode 8 begins, the test suite is complete. Mode 7 (spec-test-gen) generated it: acceptance tests from behavioral contracts, invariant tests from mathematical properties, unit tests for internal logic. Every behavior ID has at least one test. Every test contains real assertions, not placeholders. Every test fails. That is the starting condition.
+By the time Mode 10 begins, the test suite is complete. Mode 9 (spec-test-gen) generated it: acceptance tests from behavioral contracts, invariant tests from mathematical properties, unit tests for internal logic. Every behavior ID has at least one test. Every test contains real assertions, not placeholders. Every test fails. That is the starting condition.
 
 The implementation loop is structural TDD at the system scale:
 
@@ -281,7 +281,7 @@ The implementation loop is structural TDD at the system scale:
 4. Refactor under green
 5. Iterate until all AT IDs pass
 
-The order is non-negotiable. If you write code before you have failing tests, you end up with tests that describe what the code does rather than what the spec requires. The tests become a mirror, not a contract. Mode 7 prevents this by generating the full test suite before Mode 8 starts. Chapter 8 covers test generation in detail.
+The order is non-negotiable. If you write code before you have failing tests, you end up with tests that describe what the code does rather than what the spec requires. The tests become a mirror, not a contract. Mode 9 prevents this by generating the full test suite before Mode 10 starts. Chapter 10 covers test generation in detail.
 
 ## Implementation Discipline
 
@@ -775,9 +775,9 @@ cd training && python generate_swift_structs.py
 
 The reason for this ordering is that the inference stack and the Java implementation must be synchronized. The grammar file is consumed by llama.cpp at inference time to constrain the model's output. If you update the Java parser to accept a new action type but do not update the grammar file, the model will not produce that action type (because the grammar doesn't allow it), and the Java parser will never receive it. The system appears correct in unit tests (where the Java parser is tested with hand-crafted inputs) but fails in production (where the model produces grammar-constrained outputs). Updating the grammar file first forces the full stack — grammar, model output, Swift parsing, Java parsing — to be considered as a unit before any individual layer is modified.
 
-The implementation discipline, the conflict taxonomy, and the module checklist together form Mode 8's contribution to the pipeline. They ensure that production code is a faithful translation of frozen specs into executable behavior, verified by a test suite that already exists and already fails.
+The implementation discipline, the conflict taxonomy, and the module checklist together form Mode 10's contribution to the pipeline. They ensure that production code is a faithful translation of frozen specs into executable behavior, verified by a test suite that already exists and already fails.
 
-Two modes remain. Mode 8b (spec-fidelity) audits the implementation for completeness, faithfulness, and containment. Mode 9 (spec-traceability) builds the traceability matrix, verifies mutation resilience, and establishes CI enforcement. Chapters 9 and 10 cover these.
+Two modes remain. Mode 11 (spec-fidelity) audits the implementation for completeness, faithfulness, and containment. Mode 12 (spec-traceability) builds the traceability matrix, verifies mutation resilience, and establishes CI enforcement. Chapters 12 and 13 cover these.
 
 ---
 **`/spec-execution` instructions — §OPERATING PRINCIPLE:**

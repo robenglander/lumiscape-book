@@ -1,12 +1,12 @@
-# Chapter 11: The Proof
+# Chapter 13: The Proof
 
-Nine modes. Specifications authored, reviewed for consistency, frozen. Deterministic and stochastic engines validated. Integration points verified. Tests generated from behavioral contracts, with real assertions that fail. Production code written under discipline, constrained by those failing tests until every one turns green. A fidelity audit confirming completeness, faithfulness, and containment. All of that work produces a codebase that is, by construction, correct. But "by construction" is a claim. Mode 9 produces the evidence.
+Twelve modes. Specifications authored, reviewed for consistency, frozen. Deterministic and stochastic engines validated. Integration points verified. Tests generated from behavioral contracts, with real assertions that fail. Production code written under discipline, constrained by those failing tests until every one turns green. A fidelity audit confirming completeness, faithfulness, and containment. All of that work produces a codebase that is, by construction, correct. But "by construction" is a claim. Mode 12 produces the evidence.
 
-The traceability matrix is that evidence. It maps every requirement to a test, every test to production code, and every link in that chain to a verifiable entry. If any link is missing, the implementation is incomplete. If any test passes through a common mutation without failing, the test is insufficient. If CI does not enforce these properties on every commit, the guarantees degrade. Mode 9 closes all three gaps: traceability, resilience, enforcement.
+The traceability matrix is that evidence. It maps every requirement to a test, every test to production code, and every link in that chain to a verifiable entry. If any link is missing, the implementation is incomplete. If any test passes through a common mutation without failing, the test is insufficient. If CI does not enforce these properties on every commit, the guarantees degrade. Mode 12 closes all three gaps: traceability, resilience, enforcement.
 
 ## Prerequisites
 
-Mode 9 gates on two artifacts and one behavioral condition.
+Mode 12 gates on two artifacts and one behavioral condition.
 
 ---
 **`/spec-traceability` instructions -- PREREQUISITES:**
@@ -46,9 +46,9 @@ documented as gaps in the matrix.
 ```
 ---
 
-The spec freeze lock has been present since Mode 3. It guarantees the specs have not changed since they were frozen. Without it, traceability is meaningless: you would be mapping requirements to code while the requirements are still moving.
+The spec freeze lock has been present since Mode 5. It guarantees the specs have not changed since they were frozen. Without it, traceability is meaningless: you would be mapping requirements to code while the requirements are still moving.
 
-The fidelity report is the output of Mode 8b. It audits whether the implementation is complete (no MISSING behaviors), faithful (no divergence from spec intent), and contained (no SPEC VIOLATIONS where code does something the spec prohibits). Mode 9 requires that report to show a clean verdict. If the fidelity report still has unresolved gaps, those gaps would appear in the traceability matrix as missing links, and the matrix would document known incompleteness rather than proving completeness. Fix the gaps first.
+The fidelity report is the output of Mode 11. It audits whether the implementation is complete (no MISSING behaviors), faithful (no divergence from spec intent), and contained (no SPEC VIOLATIONS where code does something the spec prohibits). Mode 12 requires that report to show a clean verdict. If the fidelity report still has unresolved gaps, those gaps would appear in the traceability matrix as missing links, and the matrix would document known incompleteness rather than proving completeness. Fix the gaps first.
 
 The exception is deliberate: UNTESTED behaviors (where placeholders have been replaced with real assertions but the behavior is not yet fully exercised) and BLOCKED behaviors (marked `@Disabled` with a documented architectural constraint) may remain. These show up in the matrix as explicitly documented gaps, not as holes. The distinction matters. A documented gap says "we know this is missing and here is why." A hole says nothing.
 
@@ -174,7 +174,7 @@ Every row in the matrix tells you four things: what the spec requires, which AT 
 
 The matrix reveals three types of gap, each with different implications for the implementation.
 
-**Gap type 1: Requirement ID with no test.** A behavior was specified in the spec but no test verifies it. The code may implement it correctly or incorrectly, and CI will not catch it. Every row in the matrix must have a test. Any row with a missing test is an implementation that cannot be verified. This is the most straightforward gap: it means Mode 7 (spec-test-gen) missed something, or a behavior was added during a late spec revision and the test was never generated.
+**Gap type 1: Requirement ID with no test.** A behavior was specified in the spec but no test verifies it. The code may implement it correctly or incorrectly, and CI will not catch it. Every row in the matrix must have a test. Any row with a missing test is an implementation that cannot be verified. This is the most straightforward gap: it means Mode 9 (spec-test-gen) missed something, or a behavior was added during a late spec revision and the test was never generated.
 
 **Gap type 2: Test with no requirement ID.** A test exists that does not cite a spec behavior. The test is verifying something the spec does not require. This could be a speculative feature (code that was not requested and may not be wanted), a duplicate of another test under a different name, or an implementation detail that was tested directly instead of through its behavioral contract. Tests without spec authority should be investigated and either linked to a behavior ID or removed.
 
@@ -507,7 +507,7 @@ AUDIT BACKBONE
 ```
 ---
 
-The matrix and the manifest are the two outputs of Mode 9. The matrix is the human-readable report. The manifest is the machine-readable audit trail. Together, they answer the question: for every requirement in the frozen spec set, is there a test that verifies it and production code that implements it?
+The matrix and the manifest are the two outputs of Mode 12. The matrix is the human-readable report. The manifest is the machine-readable audit trail. Together, they answer the question: for every requirement in the frozen spec set, is there a test that verifies it and production code that implements it?
 
 ```mermaid
 flowchart TD
@@ -554,9 +554,9 @@ After this phase passes, the implementation is:
 ```
 ---
 
-Nine modes, and the codebase has passed through all of them.
+Twelve modes, and the codebase has passed through all of them.
 
-Mode 1 authored the specs. Mode 2 reviewed them for compliance, and Mode 2b reviewed them for cross-spec consistency. Mode 3 froze them. Mode 4 validated the deterministic engine against spec behaviors. Mode 5 validated the stochastic engine against statistical properties. Mode 6 verified integration points across module boundaries. Mode 7 generated the full test suite from behavioral contracts, with real assertions, every test failing. Mode 8 wrote production code under discipline until every test turned green. Mode 8b audited the implementation for completeness, faithfulness, and containment. Mode 9 built the traceability matrix, hardened the tests against mutations, and verified CI enforcement.
+Mode 1 authored the specs. Mode 2 reviewed them for compliance, and Mode 3 reviewed them for cross-spec consistency. Mode 5 froze them. Mode 6 validated the deterministic engine against spec behaviors. Mode 7 validated the stochastic engine against statistical properties. Mode 8 verified integration points across module boundaries. Mode 9 generated the full test suite from behavioral contracts, with real assertions, every test failing. Mode 10 wrote production code under discipline until every test turned green. Mode 11 audited the implementation for completeness, faithfulness, and containment. Mode 12 built the traceability matrix, hardened the tests against mutations, and verified CI enforcement.
 
 ---
 **`/spec-traceability` instructions -- OPERATING PRINCIPLE:**

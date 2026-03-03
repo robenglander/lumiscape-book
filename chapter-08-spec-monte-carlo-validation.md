@@ -1,4 +1,4 @@
-# Chapter 6: Testing What Randomness Is Doing
+# Chapter 8: Testing What Randomness Is Doing
 
 ## Why Stochastic Testing Is Fundamentally Different
 
@@ -36,7 +36,7 @@ Create a complete acceptance test suite that validates the Monte Carlo system ag
 
 ## The Existing-Art Requirement — Why Informality Breaks Down for Stochastic Tests
 
-Chapter 5 explained why external authoritative sources are required for deterministic tests: to avoid circularity, where the tests merely confirm that the code matches the spec without verifying that the spec is correct. The same motivation applies here, but with an additional structural reason specific to stochastic testing.
+Chapter 7 explained why external authoritative sources are required for deterministic tests: to avoid circularity, where the tests merely confirm that the code matches the spec without verifying that the spec is correct. The same motivation applies here, but with an additional structural reason specific to stochastic testing.
 
 For a deterministic component, you can often compute the expected output from first principles. Given IRS Publication 590-B and a calculator, you can derive the expected RMD. The external source provides ground truth, but you can follow the reasoning. For a stochastic component, you need theoretical backing for what the statistical properties of the output should be. You cannot derive those properties without the theory. And informal sources — blogs, vendor documentation, StackOverflow answers — do not give you the theory. They give you the conclusion without the proof, which means they cannot tell you the invariants you need to test against.
 
@@ -270,7 +270,7 @@ Degeneracy tests are the most powerful tests in the Monte Carlo suite, and they 
 
 This matters because the Monte Carlo code path is not the same code path as the deterministic engine. It has different loop structure, different state management, different accumulation logic. A bug in the stochastic path might produce results that are within the distributional tolerance of a statistical test but wrong by a constant factor that the degeneracy test catches immediately.
 
-Designing a degeneracy test requires you to specify the exact expected value through arithmetic, using the spec's compounding convention. This is the same discipline that Chapter 5 applies to golden cases for RMD calculations — derive the expected value from first principles, show the arithmetic, assert equality.
+Designing a degeneracy test requires you to specify the exact expected value through arithmetic, using the spec's compounding convention. This is the same discipline that Chapter 7 applies to golden cases for RMD calculations — derive the expected value from first principles, show the arithmetic, assert equality.
 
 ```mermaid
 flowchart TD
@@ -362,7 +362,7 @@ Without a fixed seed, every CI run draws fresh randomness. On a pass rate of 95%
 
 Fixed seeds break this pattern entirely. With a fixed seed, the test either always passes or always fails. If seed 42 happens to produce a sample mean that falls inside the tolerance for a correct implementation, it will produce that same sample mean every time. If the implementation is changed to be incorrect, the sample mean changes and the test fails every time. The test has become a deterministic check on a specific pseudo-random trajectory rather than a probabilistic claim about the distribution. It is no longer subject to natural variation.
 
-The multi-seed validation policy handles the concern that seed 42 might be a lucky seed — a seed that happens to produce a passing test even for a broken implementation. During the validation phase (Mode 5), the validation agent runs each statistical test with multiple different fixed seeds (for example, 42, 137, 271, 1000, and 99999). If the test passes for all five seeds, the property is well-established — the implementation is correct for multiple independent pseudo-random trajectories. If any seed fails, the property does not hold and the test fails. After multi-seed verification, the CI suite uses a single fixed seed (typically 42 by convention). The validation report documents which seeds were tested and confirms they all produced passing results.
+The multi-seed validation policy handles the concern that seed 42 might be a lucky seed — a seed that happens to produce a passing test even for a broken implementation. During the validation phase (Mode 7), the validation agent runs each statistical test with multiple different fixed seeds (for example, 42, 137, 271, 1000, and 99999). If the test passes for all five seeds, the property is well-established — the implementation is correct for multiple independent pseudo-random trajectories. If any seed fails, the property does not hold and the test fails. After multi-seed verification, the CI suite uses a single fixed seed (typically 42 by convention). The validation report documents which seeds were tested and confirms they all produced passing results.
 
 The multi-seed policy also catches an insidious failure mode: an implementation that is almost correct but has a systematic bias that happens to be within tolerance for one seed and outside tolerance for another. If the test is only ever run with one seed, this bias might not be detected. Five seeds give five independent chances to detect it.
 
@@ -393,7 +393,7 @@ The coverage gate also prevents a scope-creep failure mode in spec writing. If t
 
 ## The MVP Discipline — What Validation Is For
 
-The minimum viable set for this validation mode is three to six tests per component. This is a deliberate constraint, not a low bar. The goal of Mode 5 (spec-monte-carlo-validation) is different from the goal of Mode 7 (spec-test-gen, where the full test suite is generated before any production code). Mode 5 produces a validation suite that establishes the statistical properties the implementation must satisfy. Mode 7 produces a comprehensive test suite, including acceptance, invariant, and unit tests, that the implementation must satisfy. Conflating these produces one of two failures: an overly large Mode 5 suite that takes hours to run and delays the gate, or an under-covered Mode 7 suite that relies on Mode 5 tests to cover internal behavior they were never designed to test.
+The minimum viable set for this validation mode is three to six tests per component. This is a deliberate constraint, not a low bar. The goal of Mode 7 (spec-monte-carlo-validation) is different from the goal of Mode 9 (spec-test-gen, where the full test suite is generated before any production code). Mode 7 produces a validation suite that establishes the statistical properties the implementation must satisfy. Mode 9 produces a comprehensive test suite, including acceptance, invariant, and unit tests, that the implementation must satisfy. Conflating these produces one of two failures: an overly large Mode 7 suite that takes hours to run and delays the gate, or an under-covered Mode 9 suite that relies on Mode 7 tests to cover internal behavior they were never designed to test.
 
 ---
 **`/spec-monte-carlo-validation` instructions — §MVP FIRST:**
@@ -405,9 +405,9 @@ Produce an MVP suite: 3–6 tests per component. After MVP, optionally propose a
 ```
 ---
 
-The MVP per component requires: one degenerate test (exact behavior under zero variance), one statistical test (the core distributional property), and one negative test (invalid parameter rejection). Three tests establish the minimum correctness bar. The extended suite — additional statistical tests, edge cases, multi-parameter configurations — is Mode 7's responsibility, generated as part of the full test suite before implementation begins.
+The MVP per component requires: one degenerate test (exact behavior under zero variance), one statistical test (the core distributional property), and one negative test (invalid parameter rejection). Three tests establish the minimum correctness bar. The extended suite — additional statistical tests, edge cases, multi-parameter configurations — is Mode 9's responsibility, generated as part of the full test suite before implementation begins.
 
-This sequencing also serves a quality function: the Mode 5 tests are written before any implementation exists. They are written against the spec's public API contracts. They will compile only once the API is implemented (during Mode 8), at which point they act as acceptance tests. Tests written after implementation tend to follow the implementation's structure rather than the spec's contract. Tests written before implementation are forced to follow the spec. This is the same principle that applies to TDD in unit testing, applied at the architectural scale of a Monte Carlo validation suite.
+This sequencing also serves a quality function: the Mode 7 tests are written before any implementation exists. They are written against the spec's public API contracts. They will compile only once the API is implemented (during Mode 10), at which point they act as acceptance tests. Tests written after implementation tend to follow the implementation's structure rather than the spec's contract. Tests written before implementation are forced to follow the spec. This is the same principle that applies to TDD in unit testing, applied at the architectural scale of a Monte Carlo validation suite.
 
 ## Putting It Together: The Validation Report Structure
 
