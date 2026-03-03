@@ -1,4 +1,4 @@
-# Chapter 13: The Proof
+# Chapter 14: The Proof
 
 Twelve modes. Specifications authored, reviewed for consistency, frozen. Deterministic and stochastic engines validated. Integration points verified. Tests generated from behavioral contracts, with real assertions that fail. Production code written under discipline, constrained by those failing tests until every one turns green. A fidelity audit confirming completeness, faithfulness, and containment. All of that work produces a codebase that is, by construction, correct. But "by construction" is a claim. Mode 12 produces the evidence.
 

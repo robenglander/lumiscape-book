@@ -1,8 +1,8 @@
-# Chapter 4: Finding What Individual Review Misses
+# Chapter 5: Finding What Individual Review Misses
 
 ## The Cross-Spec Consistency Problem
 
-Every spec review in Chapter 3 validates one spec in isolation. That is necessary but not sufficient. A system is not a collection of independent specs — it is a network of specs that reference each other, share types, define interfaces that other specs consume, and collectively describe behaviors that emerge from their interactions. A spec that is individually correct can still be wrong in the context of the system it belongs to.
+Every spec review in Chapter 4 validates one spec in isolation. That is necessary but not sufficient. A system is not a collection of independent specs — it is a network of specs that reference each other, share types, define interfaces that other specs consume, and collectively describe behaviors that emerge from their interactions. A spec that is individually correct can still be wrong in the context of the system it belongs to.
 
 The simplest version of this is dependent spec drift. You have a normative source — a spec that defines the authoritative list of something, say the eight valid what-if change targets in the grammar vocabulary. Ten other specs reference those targets. When the normative source changes — two targets renamed, one removed — you need to update all ten. In practice you update three or four and miss the rest. The missed specs still carry the old vocabulary. Each one passes its own review. None of them is internally inconsistent. But they are all wrong in the context of the system, because they describe a vocabulary that no longer exists.
 
@@ -755,6 +755,6 @@ This is what it means to write a skill as a machine-executable specification rat
 
 ## What Comes Next
 
-Deep review is Mode 3. When it ends clean, the next step is Mode 4: behavioral coherence review (Chapter 5). Coherence uses a fundamentally different methodology, read-first instead of grep-first, tracing data flows end-to-end across specs to find contract mismatches, semantic disagreements, and lifecycle gaps that no grep can surface. Mode 4 is gated by Mode 3: mechanical consistency must be clean before behavioral coherence can be meaningfully assessed.
+Deep review is Mode 3. When it ends clean, the next step is Mode 4: behavioral coherence review (Chapter 6). Coherence uses a fundamentally different methodology, read-first instead of grep-first, tracing data flows end-to-end across specs to find contract mismatches, semantic disagreements, and lifecycle gaps that no grep can surface. Mode 4 is gated by Mode 3: mechanical consistency must be clean before behavioral coherence can be meaningfully assessed.
 
-After coherence passes, Mode 5 freezes the spec surface (Chapter 6). The freeze creates an immutable snapshot: a git tag, a lock file, and a tag file that every downstream mode gates on. Everything after the freeze, from deterministic validation through traceability, operates on the assumption that the specs are correct and consistent. That assumption holds because of the work described in this chapter, the coherence review in Chapter 5, and the structural validation that the freeze itself performs before committing.
+After coherence passes, Mode 5 freezes the spec surface (Chapter 7). The freeze creates an immutable snapshot: a git tag, a lock file, and a tag file that every downstream mode gates on. Everything after the freeze, from deterministic validation through traceability, operates on the assumption that the specs are correct and consistent. That assumption holds because of the work described in this chapter, the coherence review in Chapter 6, and the structural validation that the freeze itself performs before committing.

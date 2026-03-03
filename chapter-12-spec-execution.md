@@ -1,4 +1,4 @@
-# Chapter 11: Implementing Under Frozen Contracts
+# Chapter 12: Implementing Under Frozen Contracts
 
 ## The Transition
 
@@ -281,7 +281,7 @@ The implementation loop is structural TDD at the system scale:
 4. Refactor under green
 5. Iterate until all AT IDs pass
 
-The order is non-negotiable. If you write code before you have failing tests, you end up with tests that describe what the code does rather than what the spec requires. The tests become a mirror, not a contract. Mode 9 prevents this by generating the full test suite before Mode 10 starts. Chapter 10 covers test generation in detail.
+The order is non-negotiable. If you write code before you have failing tests, you end up with tests that describe what the code does rather than what the spec requires. The tests become a mirror, not a contract. Mode 9 prevents this by generating the full test suite before Mode 10 starts. Chapter 11 covers test generation in detail.
 
 ## Implementation Discipline
 
@@ -777,7 +777,7 @@ The reason for this ordering is that the inference stack and the Java implementa
 
 The implementation discipline, the conflict taxonomy, and the module checklist together form Mode 10's contribution to the pipeline. They ensure that production code is a faithful translation of frozen specs into executable behavior, verified by a test suite that already exists and already fails.
 
-Two modes remain. Mode 11 (spec-fidelity) audits the implementation for completeness, faithfulness, and containment. Mode 12 (spec-traceability) builds the traceability matrix, verifies mutation resilience, and establishes CI enforcement. Chapters 12 and 13 cover these.
+Two modes remain. Mode 11 (spec-fidelity) audits the implementation for completeness, faithfulness, and containment. Mode 12 (spec-traceability) builds the traceability matrix, verifies mutation resilience, and establishes CI enforcement. Chapters 13 and 14 cover these.
 
 ---
 **`/spec-execution` instructions — §OPERATING PRINCIPLE:**

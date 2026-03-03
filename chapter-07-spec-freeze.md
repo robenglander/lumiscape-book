@@ -1,4 +1,4 @@
-# Chapter 6: The Decision to Commit
+# Chapter 7: The Decision to Commit
 
 ## Why the Freeze Is a Human Step
 
@@ -78,7 +78,7 @@ flowchart TD
 
 ## Phase 1: Structural Validation
 
-Before freezing, the skill runs 28 structural checks from the spec template (LUM-SYS-004) against every spec file. Chapter 4 covers these checks in detail. The freeze runs them again as a final gate, because a spec can pass individual review (Mode 2) and then be modified in the time between review and freeze. The structural validation at freeze time is the last chance to catch a broken spec before it becomes immutable.
+Before freezing, the skill runs 28 structural checks from the spec template (LUM-SYS-004) against every spec file. Chapter 5 covers these checks in detail. The freeze runs them again as a final gate, because a spec can pass individual review (Mode 2) and then be modified in the time between review and freeze. The structural validation at freeze time is the last chance to catch a broken spec before it becomes immutable.
 
 ---
 **`/spec-freeze` instructions -- §Execution:**

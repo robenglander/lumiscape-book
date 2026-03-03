@@ -1,4 +1,4 @@
-# Chapter 9: Verifying the Bridge Between Engines
+# Chapter 10: Verifying the Bridge Between Engines
 
 ## Two Engines That Must Agree
 

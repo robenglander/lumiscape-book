@@ -1,8 +1,8 @@
-# Chapter 5: Tracing Contracts Across the Spec Surface
+# Chapter 6: Tracing Contracts Across the Spec Surface
 
 ## What Grep Cannot Find
 
-Chapter 4 describes a systematic grep-based methodology for finding cross-spec inconsistencies: stale vocabulary, wrong counts, deleted construct references, conflicting assertions. Those checks are mechanical. You know what can go wrong, you encode it as a search pattern, and you run it across the corpus. Every deep-review phase has a finite list of things it looks for. If the problem is not in the list, the review will not find it.
+Chapter 5 describes a systematic grep-based methodology for finding cross-spec inconsistencies: stale vocabulary, wrong counts, deleted construct references, conflicting assertions. Those checks are mechanical. You know what can go wrong, you encode it as a search pattern, and you run it across the corpus. Every deep-review phase has a finite list of things it looks for. If the problem is not in the list, the review will not find it.
 
 There is a category of failure that can never be in the list. Consider two specs: LUM-DTO-030 defines a `RetirementDistributionConfig` with four fields. LUM-ENG-015 consumes that config to calculate retirement withdrawals. Both specs pass individual review. Both have correct behavior IDs, valid architecture metadata, proper acceptance tests. Deep review finds no stale terms, no count mismatches, no deleted references. The field names match. The types match. Everything is mechanically consistent.
 

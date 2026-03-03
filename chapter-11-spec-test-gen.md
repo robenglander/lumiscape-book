@@ -1,4 +1,4 @@
-# Chapter 10: Tests Before Code
+# Chapter 11: Tests Before Code
 
 Mode 9 exists because of a specific failure we kept hitting: when test generation and implementation happen in the same phase, tests drift. They start describing what the code does instead of what the specs require. The implementer writes a calculator, writes a test that calls the calculator, and the test passes. Of course it passes. The test was written to match the code. Whether the code matches the spec is a different question, and one that the test is no longer equipped to answer.
 

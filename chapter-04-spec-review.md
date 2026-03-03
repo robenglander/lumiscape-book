@@ -1,4 +1,4 @@
-# Chapter 3: Writing Specs That Are Actually Contracts
+# Chapter 4: Writing Specs That Are Actually Contracts
 
 ## The Problem With Engineer-Written Specs
 

@@ -1,4 +1,4 @@
-# Chapter 7: Testing Against Ground Truth
+# Chapter 8: Testing Against Ground Truth
 
 ## The Circularity Problem
 

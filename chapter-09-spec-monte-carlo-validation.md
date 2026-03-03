@@ -1,4 +1,4 @@
-# Chapter 8: Testing What Randomness Is Doing
+# Chapter 9: Testing What Randomness Is Doing
 
 ## Why Stochastic Testing Is Fundamentally Different
 
@@ -36,7 +36,7 @@ Create a complete acceptance test suite that validates the Monte Carlo system ag
 
 ## The Existing-Art Requirement — Why Informality Breaks Down for Stochastic Tests
 
-Chapter 7 explained why external authoritative sources are required for deterministic tests: to avoid circularity, where the tests merely confirm that the code matches the spec without verifying that the spec is correct. The same motivation applies here, but with an additional structural reason specific to stochastic testing.
+Chapter 8 explained why external authoritative sources are required for deterministic tests: to avoid circularity, where the tests merely confirm that the code matches the spec without verifying that the spec is correct. The same motivation applies here, but with an additional structural reason specific to stochastic testing.
 
 For a deterministic component, you can often compute the expected output from first principles. Given IRS Publication 590-B and a calculator, you can derive the expected RMD. The external source provides ground truth, but you can follow the reasoning. For a stochastic component, you need theoretical backing for what the statistical properties of the output should be. You cannot derive those properties without the theory. And informal sources — blogs, vendor documentation, StackOverflow answers — do not give you the theory. They give you the conclusion without the proof, which means they cannot tell you the invariants you need to test against.
 
@@ -270,7 +270,7 @@ Degeneracy tests are the most powerful tests in the Monte Carlo suite, and they 
 
 This matters because the Monte Carlo code path is not the same code path as the deterministic engine. It has different loop structure, different state management, different accumulation logic. A bug in the stochastic path might produce results that are within the distributional tolerance of a statistical test but wrong by a constant factor that the degeneracy test catches immediately.
 
-Designing a degeneracy test requires you to specify the exact expected value through arithmetic, using the spec's compounding convention. This is the same discipline that Chapter 7 applies to golden cases for RMD calculations — derive the expected value from first principles, show the arithmetic, assert equality.
+Designing a degeneracy test requires you to specify the exact expected value through arithmetic, using the spec's compounding convention. This is the same discipline that Chapter 8 applies to golden cases for RMD calculations — derive the expected value from first principles, show the arithmetic, assert equality.
 
 ```mermaid
 flowchart TD

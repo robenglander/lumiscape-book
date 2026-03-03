@@ -1,4 +1,4 @@
-# Chapter 2: Spec Writing
+# Chapter 3: Spec Writing
 
 Every spec in this book follows a formal structure. Behaviors have sequential IDs. Acceptance tests trace back to those behaviors, and every behavior traces forward to at least one test. Sections appear in a fixed order. Required fields are required. The format is strict because everything downstream depends on it: review checks completeness against the structure, validation checks correctness against the behaviors, test generation maps directly to behavior IDs, traceability links specs to production code. The spec is the source of truth. If the spec is ambiguous, everything built from it inherits that ambiguity.
 
@@ -28,7 +28,7 @@ Start the conversation:
 
 Claude comes back with the rules: RMDs begin at age 73 (under SECURE 2.0 Act), the distribution amount is calculated by dividing the prior year-end balance by a life expectancy factor from IRS Publication 590-B Table III, the penalty for missing an RMD is 25% of the shortfall (reduced from 50% by SECURE 2.0). Claude cites IRS Publication 590-B, the SECURE 2.0 Act of 2022, and the relevant Internal Revenue Code sections.
 
-Guide Claude toward authoritative sources. Government publications, regulatory text, official standards. Not blog posts, not financial advisor websites, not forum answers. When Claude cites an IRS publication, you can verify it. When the source is vague, you cannot. This discipline pays off later: when you run deterministic validation (Chapter 7), you verify your engine's output against hand-calculated values derived from those same primary sources. The authoritative citation from spec writing becomes the ground truth for validation.
+Guide Claude toward authoritative sources. Government publications, regulatory text, official standards. Not blog posts, not financial advisor websites, not forum answers. When Claude cites an IRS publication, you can verify it. When the source is vague, you cannot. This discipline pays off later: when you run deterministic validation (Chapter 8), you verify your engine's output against hand-calculated values derived from those same primary sources. The authoritative citation from spec writing becomes the ground truth for validation.
 
 > "Show me the actual IRS Uniform Lifetime Table from Publication 590-B. I want the divisors for ages 72 through 85."
 
@@ -128,8 +128,8 @@ It makes specs navigable. Core Behaviors are always in the same position. Refere
 
 The domain content lives in position 6, the FLEX ZONE. Its internal structure varies by component type: algorithms and tables for calculators, schema and interfaces for repositories, endpoints and configuration for services. The FLEX ZONE is where the IRS divisor table goes, where the tax bracket data goes, where the algorithm pseudocode goes. It is the substance of the spec, drawn from the domain knowledge you built during the conversation.
 
-Claude knows the format and applies it. If you prefer to learn it yourself, the full template is in the project's system specs. Chapter 4 covers the structural validation that enforces it.
+Claude knows the format and applies it. If you prefer to learn it yourself, the full template is in the project's system specs. Chapter 5 covers the structural validation that enforces it.
 
 ## What Comes Next
 
-Chapter 3 covers `/spec-review`, which validates specs for behavioral completeness. Review presupposes a structurally valid spec: Core Behaviors, Out of Scope, acceptance tests. The conversation naturally produces the structure, because Claude writes the spec in the correct format from the start. What review adds is a second pass: are the behaviors complete? Are the acceptance tests thorough? Are there edge cases the conversation missed?
+Chapter 4 covers `/spec-review`, which validates specs for behavioral completeness. Review presupposes a structurally valid spec: Core Behaviors, Out of Scope, acceptance tests. The conversation naturally produces the structure, because Claude writes the spec in the correct format from the start. What review adds is a second pass: are the behaviors complete? Are the acceptance tests thorough? Are there edge cases the conversation missed?

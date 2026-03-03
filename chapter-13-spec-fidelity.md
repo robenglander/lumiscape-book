@@ -1,4 +1,4 @@
-# Chapter 12: The Fidelity Audit
+# Chapter 13: The Fidelity Audit
 
 ## After Implementation, the Hard Question
 
