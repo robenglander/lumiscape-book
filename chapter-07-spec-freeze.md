@@ -135,7 +135,7 @@ specCount=144
 
 The lock file is not just a sentinel. It contains the tag name, commit SHA, date, and spec count. This information is useful during implementation when you need to verify that you are working against the correct spec snapshot.
 
-In the Lumiscape project, the lock file grew to document fifteen formal revisions after the initial freeze. Each revision records a reason, a list of affected specs, and the defects that triggered the revision. Revision R1 documents seven integration defects found by Mode 8. Revision R7 documents the dissolution of the `lumiscape-ref-data` module. Revision R14 documents the monthly ledger redesign. Without the lock file, these decisions would be invisible in the commit history. With it, anyone joining the project can read the evolution of the spec surface as a linear narrative.
+In one production project, the lock file grew to document fifteen formal revisions after the initial freeze. Each revision records a reason, a list of affected specs, and the defects that triggered the revision. The first documents seven integration defects found by Mode 8. A later one documents the dissolution of an entire module. Another documents a ledger model redesign. Without the lock file, these decisions would be invisible in the commit history. With it, anyone joining the project can read the evolution of the spec surface as a linear narrative.
 
 ### The Tag File
 
@@ -203,7 +203,7 @@ The old git tag is preserved for historical reference. Each freeze creates a new
 ```
 ---
 
-The unfreeze-edit-refreeze cycle is the expected workflow, not an exception. In Lumiscape, fifteen formal revisions occurred after the initial freeze. Some were minor: a single field renamed, a single behavior clarified. Others were structural: an entire module dissolved (R7), a new monthly ledger model introduced (R14), the annuitization sweep architecture added (R15). Each revision followed the same cycle: unfreeze, edit the affected specs, re-run reviews, re-freeze with a new tag.
+The unfreeze-edit-refreeze cycle is the expected workflow, not an exception. In one production project, fifteen formal revisions occurred after the initial freeze. Some were minor: a single field renamed, a single behavior clarified. Others were structural: an entire module dissolved, a new ledger model introduced, a sweep architecture added. Each revision followed the same cycle: unfreeze, edit the affected specs, re-run reviews, re-freeze with a new tag.
 
 The old tags are preserved. `specs-frozen-2026-02-20` captures the initial freeze. `specs-frozen-2026-02-23` captures the state after R7. `specs-frozen-2026-02-27-3` captures the state after R14. Each tag is a snapshot. If you need to understand the spec surface at any point in the project's history, you check out the tag and read the specs.
 

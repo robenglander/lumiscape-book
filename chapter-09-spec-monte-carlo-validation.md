@@ -2,13 +2,13 @@
 
 ## Why Stochastic Testing Is Fundamentally Different
 
-Testing a deterministic system is, in principle, simple: give it an input, compute the expected output from an authoritative source, assert equality. The challenge is identifying the right inputs and the right sources. The mechanics of assertion are trivial. Testing a stochastic system breaks this model at its foundation. You cannot assert that a specific stochastic output equals a specific value, because the output depends on random draws that differ every run. The first instinct — just run it a lot and see if it looks right — is not a test. It is an eyeball check, and it does not scale, does not reproduce, and cannot gate a build.
+Testing a deterministic system is, in principle, simple: give it an input, compute the expected output from an authoritative source, assert equality. The challenge is identifying the right inputs and the right sources. The mechanics of assertion are trivial. Testing a stochastic system breaks this model at its foundation. You cannot assert that a specific stochastic output equals a specific value, because the output depends on random draws that differ every run. The first instinct (just run it a lot and see if it looks right) is not a test. It is an eyeball check, and it does not scale, does not reproduce, and cannot gate a build.
 
 What you can assert about a stochastic system is the statistical properties of its output over many runs. Not "the sample return equals 0.07," but "the sample mean of returns over N=10,000 runs is within 0.003 of 0.07 at 95% confidence." Not "path 47 produced terminal wealth $2.3M," but "the 50th percentile terminal wealth is above the 95th percentile of the deterministic no-growth case." The assertion shifts from a single output value to a distributional property. Every aspect of test design follows from that shift.
 
 The contrast is most vivid when you look at a concrete pair. The deterministic RMD test: given a traditional IRA balance of $500,000 at end of 2023 and a plan participant who turned 73 during 2023, the IRS Uniform Lifetime Table (IRS Pub. 590-B, 2022 revision) gives a life expectancy factor of 26.5, therefore the required minimum distribution is $500,000 / 26.5 = $18,868 (rounded to nearest dollar). That test has a single exact expected value derived from a published table. You run it once. It either matches or it does not. The stochastic counterpart: given a log-normal return model with mu=0.07 and sigma=0.15, running N=10,000 simulation paths with seed 42, the sample mean of annual returns must be within 0.003 of 0.07. That test specifies a tolerance, a confidence level, a seed, and a run count — four quantities a deterministic test never needs. Each requires a justification, not a guess.
 
-This requires completely different validation infrastructure. Confidence intervals are not optional ornamentation — they are the mechanism by which you state what the test is actually asserting. Hypothesis tests (Kolmogorov-Smirnov, Anderson-Darling) are not overkill — they are the only tools that can verify distributional shape rather than just a single moment. Statistical power calculations are not academic exercises — they are how you choose N. Fixed seeds are not a convenience — they are what separate a reproducible test from noise. `/spec-monte-carlo-validation` is a different skill from `/spec-deterministic-validation` not because the problem is harder (though it is) but because the problem is categorically different. The same mental models and the same test templates do not apply.
+This requires completely different validation infrastructure. Confidence intervals are not optional ornamentation. They are the mechanism by which you state what the test is actually asserting. Hypothesis tests (Kolmogorov-Smirnov, Anderson-Darling) are not overkill. They are the only tools that can verify distributional shape rather than just a single moment. Statistical power calculations are not academic exercises. They are how you choose N. Fixed seeds are not a convenience. They are what separate a reproducible test from noise. `/spec-monte-carlo-validation` is a different skill from `/spec-deterministic-validation` not because the problem is harder (though it is) but because the problem is categorically different. The same mental models and the same test templates do not apply.
 
 ---
 **`/spec-monte-carlo-validation` instructions — §PREREQUISITE — SPEC FREEZE VERIFICATION:**
@@ -34,11 +34,11 @@ Create a complete acceptance test suite that validates the Monte Carlo system ag
 ```
 ---
 
-## The Existing-Art Requirement — Why Informality Breaks Down for Stochastic Tests
+## The Existing-Art Requirement: Why Informality Breaks Down for Stochastic Tests
 
 Chapter 8 explained why external authoritative sources are required for deterministic tests: to avoid circularity, where the tests merely confirm that the code matches the spec without verifying that the spec is correct. The same motivation applies here, but with an additional structural reason specific to stochastic testing.
 
-For a deterministic component, you can often compute the expected output from first principles. Given IRS Publication 590-B and a calculator, you can derive the expected RMD. The external source provides ground truth, but you can follow the reasoning. For a stochastic component, you need theoretical backing for what the statistical properties of the output should be. You cannot derive those properties without the theory. And informal sources — blogs, vendor documentation, StackOverflow answers — do not give you the theory. They give you the conclusion without the proof, which means they cannot tell you the invariants you need to test against.
+For a deterministic component, you can often compute the expected output from first principles. Given IRS Publication 590-B and a calculator, you can derive the expected RMD. The external source provides ground truth, but you can follow the reasoning. For a stochastic component, you need theoretical backing for what the statistical properties of the output should be. You cannot derive those properties without the theory. And informal sources (blogs, vendor documentation, StackOverflow answers) do not give you the theory. They give you the conclusion without the proof, which means they cannot tell you the invariants you need to test against.
 
 Consider Cholesky decomposition for correlated return generation. A blog post might say "use Cholesky decomposition to produce correlated returns." That sentence tells you nothing you can test against. It does not tell you the covariance recovery theorem — that if you draw independent standard normals Z and transform with Cholesky factor L where Sigma = L * L^T, the resulting vector X = L * Z has covariance matrix Sigma. It does not tell you the precision of the estimator for finite N. It does not tell you what happens when the input correlation matrix is not positive semi-definite. Golub and Van Loan, "Matrix Computations" (Johns Hopkins University Press, 4th edition, 2013), gives you the theorem, the proof, and the conditions. That is what you test against. The blog post gave you an algorithm name. The textbook gives you the mathematical invariant.
 
@@ -62,7 +62,7 @@ You may optionally provide a short bibliography per component (2–4 sources) an
 ```
 ---
 
-For the Lumiscape Monte Carlo engine, all of the core components have deep academic backing. Here is the literature that grounds the validation suite.
+For the example system's Monte Carlo engine, all of the core components have deep academic backing. Here is the literature that grounds the validation suite.
 
 Random number generation: Donald Knuth, "The Art of Computer Programming, Volume 2: Seminumerical Algorithms" (Addison-Wesley, 3rd edition, 1997), Section 3.3 covers statistical tests for random number generators including the chi-squared test for uniformity, the Kolmogorov-Smirnov test, and the spectral test. George Marsaglia's DIEHARD test battery (1996, Florida State University technical report) defines a practical suite of statistical tests. These two sources establish what uniform distribution properties a generator must satisfy and how to test for them.
 
@@ -136,7 +136,7 @@ N justification: with 20 bins and N=10,000 draws, the expected count per bin is 
 
 ## Component B: Normal and Log-Normal Distribution Sampling
 
-The return model for Lumiscape uses log-normal annual returns, parameterized by the log-space mean mu and log-space standard deviation sigma. Testing the sampler means verifying that drawn values have the correct first and second moments, and that the distribution shape passes a goodness-of-fit test.
+The return model uses log-normal annual returns, parameterized by the log-space mean mu and log-space standard deviation sigma. Testing the sampler means verifying that drawn values have the correct first and second moments, and that the distribution shape passes a goodness-of-fit test.
 
 **Source anchor:** Box and Muller (1958), Annals of Mathematical Statistics; Glasserman (2003), Chapter 2.
 
@@ -184,7 +184,7 @@ N justification: for the sample covariance estimator, the standard error of each
 
 ## Component D: Regime Switching (Markov Chain Validation)
 
-The Lumiscape return model uses a two-regime Markov-switching process: a bull market regime with higher expected returns and lower volatility, and a bear market regime with lower expected returns and higher volatility. The engine draws a regime state at each simulation step using the transition matrix, then samples returns from the regime-specific distribution. The test problem is: how do you verify that the regime-switching logic is correctly applying the transition probabilities?
+The return model uses a two-regime Markov-switching process: a bull market regime with higher expected returns and lower volatility, and a bear market regime with lower expected returns and higher volatility. The engine draws a regime state at each simulation step using the transition matrix, then samples returns from the regime-specific distribution. The test problem is: how do you verify that the regime-switching logic is correctly applying the transition probabilities?
 
 **Source anchor:** Hamilton (1989), Econometrica; Law and Kelton (2000), Chapter 6.
 
@@ -264,13 +264,13 @@ N justification for H-3: with M=1000 independent CIs each targeting 95% coverage
 
 **Test H-4 (Negative — N Below Minimum):** Invoke the simulation with N=0 paths. Assert that an InvalidRunCountException is thrown. Invoke with N=-1. Same assertion.
 
-## Component I: Degeneracy Cases — Exact Tests in Disguise
+## Component I: Degeneracy Cases, Exact Tests in Disguise
 
 Degeneracy tests are the most powerful tests in the Monte Carlo suite, and they are the most underutilized. The reason they are powerful: when the stochastic variance collapses to zero, every simulated path is identical, and the expected output is analytically computable. You can compare the Monte Carlo result against an exact expected value, which gives you a deterministic-quality test running through the stochastic code path.
 
 This matters because the Monte Carlo code path is not the same code path as the deterministic engine. It has different loop structure, different state management, different accumulation logic. A bug in the stochastic path might produce results that are within the distributional tolerance of a statistical test but wrong by a constant factor that the degeneracy test catches immediately.
 
-Designing a degeneracy test requires you to specify the exact expected value through arithmetic, using the spec's compounding convention. This is the same discipline that Chapter 8 applies to golden cases for RMD calculations — derive the expected value from first principles, show the arithmetic, assert equality.
+Designing a degeneracy test requires you to specify the exact expected value through arithmetic, using the spec's compounding convention. This is the same discipline that Chapter 8 applies to golden cases for RMD calculations: derive the expected value from first principles, show the arithmetic, assert equality.
 
 ```mermaid
 flowchart TD
@@ -295,11 +295,11 @@ The arithmetic: (1.07)^10 = 1.967151, (1.07)^20 = 3.869685, (1.07)^30 = 7.612255
 
 **Test I-2 (Degeneracy — Terminal Wealth, With Withdrawals):** Configure the same model with annual withdrawal of $40,000 (end of year). Expected balance after each year follows the recurrence B_t = B_{t-1} * 1.07 - 40,000. After 30 years, this can be computed exactly as: B_30 = B_0 * (1.07)^30 - 40,000 * ((1.07)^30 - 1) / 0.07 = $7,612,255 - $40,000 * 94.461 = $7,612,255 - $3,778,440 = $3,833,815. Run N=1,000 paths with seed 42. Assert all paths produce terminal balance within $0.01 of $3,833,815.
 
-This computation is exact when sigma=0. Any deviation reveals an error in withdrawal timing, withdrawal calculation, or accumulation logic. The fact that N=1,000 paths are run through the full simulation loop — with all the overhead of per-path state allocation, regime initialization, and accumulation — and they all produce the same exact value gives you high confidence in the correctness of the loop structure.
+This computation is exact when sigma=0. Any deviation reveals an error in withdrawal timing, withdrawal calculation, or accumulation logic. The fact that N=1,000 paths are run through the full simulation loop — with all the overhead of per-path state allocation, regime initialization, and accumulation, and they all produce the same exact value gives you high confidence in the correctness of the loop structure.
 
 **Test I-3 (Degeneracy — Ruin Under Deterministic Overspending):** Configure sigma=0, mu=0.03. Starting balance $500,000. Annual withdrawal $40,000. 30-year horizon. The balance at year t: B_t = 500,000 * (1.03)^t - 40,000 * ((1.03)^t - 1) / 0.03. Compute the year in which B_t first goes negative — this is the ruin year. Assert that all N=1,000 simulation paths report ruin in exactly that year and that the success rate is 0.0. If different paths report different ruin years, the path state is not being properly isolated (a Component F violation surfacing here).
 
-## The N Justification Requirement — Working Through the Full Calculation
+## The N Justification Requirement: Working Through the Full Calculation
 
 N justification appears in the skill requirements and in every statistical test specification above. Here is why it cannot be skipped and how the calculation actually works.
 
@@ -322,11 +322,11 @@ flowchart LR
     style REPRO fill:#dcfce7
 ```
 
-Now observe what happens when you change the tolerance. At T=0.001 (1 basis point): N >= (1.96 * 0.15 / 0.001)^2 = (294)^2 = 86,436. A 3x tightening of the tolerance requires a 9x increase in N. At T=0.0003 (0.3 basis points): N >= 864,360. This is the 1/sqrt(N) convergence rate in action. It imposes a real cost on precision. If someone asks for 0.1 basis point tolerance, the required N is approximately 8.6 million paths, which changes the character of the validation entirely — it becomes a compute-intensive process rather than a quick check.
+Now observe what happens when you change the tolerance. At T=0.001 (1 basis point): N >= (1.96 * 0.15 / 0.001)^2 = (294)^2 = 86,436. A 3x tightening of the tolerance requires a 9x increase in N. At T=0.0003 (0.3 basis points): N >= 864,360. This is the 1/sqrt(N) convergence rate in action. It imposes a real cost on precision. If someone asks for 0.1 basis point tolerance, the required N is approximately 8.6 million paths, which changes the character of the validation entirely. It becomes a compute-intensive process rather than a quick check.
 
-Writing the N calculation forces a decision about what level of precision is actually necessary. For a Monte Carlo simulation used in financial planning, 3 basis point tolerance on the mean return is more than adequate — no client is making decisions based on 3 basis point differences in expected returns. The test should match the precision that is meaningful in the domain. Writing the justification forces you to state this explicitly rather than picking N=10,000 because it sounds big enough.
+Writing the N calculation forces a decision about what level of precision is actually necessary. For a Monte Carlo simulation used in financial planning, 3 basis point tolerance on the mean return is more than adequate. No client is making decisions based on 3 basis point differences in expected returns. The test should match the precision that is meaningful in the domain. Writing the justification forces you to state this explicitly rather than picking N=10,000 because it sounds big enough.
 
-The N justification for regime-switching tests is more complex because of serial correlation. A Markov chain is not a sequence of independent draws — the state at step t is correlated with the state at step t-1. The effective sample size for estimating the stationary distribution is N divided by the correlation time of the chain, which is approximately 1/(p_out_of_state) where p_out_of_state is the probability of leaving a state in one step. For a bull regime with 10% probability of transitioning to bear, the correlation time is approximately 1/0.1 = 10 steps. An N=100,000 step simulation has effective N of approximately 10,000 independent observations. The standard error of the stationary distribution estimator is computed using this effective N, not the nominal N.
+The N justification for regime-switching tests is more complex because of serial correlation. A Markov chain is not a sequence of independent draws. The state at step t is correlated with the state at step t-1. The effective sample size for estimating the stationary distribution is N divided by the correlation time of the chain, which is approximately 1/(p_out_of_state) where p_out_of_state is the probability of leaving a state in one step. For a bull regime with 10% probability of transitioning to bear, the correlation time is approximately 1/0.1 = 10 steps. An N=100,000 step simulation has effective N of approximately 10,000 independent observations. The standard error of the stationary distribution estimator is computed using this effective N, not the nominal N.
 
 Ignoring the serial correlation when setting N for regime-switching tests produces tests that are less stable than they appear. A test that looks like it has 7-sigma coverage in the naive calculation may actually have 2-sigma coverage after correcting for correlation time, making it prone to occasional failures. Compute the correlation time, adjust N accordingly, and document both the nominal N and the effective N in the test specification.
 
@@ -354,9 +354,9 @@ Ignoring the serial correlation when setting N for regime-switching tests produc
 ```
 ---
 
-## The Fixed Seed Requirement — Why Intermittent Tests Destroy Teams
+## The Fixed Seed Requirement: Why Intermittent Tests Destroy Teams
 
-A statistical test with tolerance set at 2 standard errors will fail 5% of the time by construction. This is not a defect in the test — it is an inevitable consequence of using a statistical test with finite N. The question is not whether to accept this, but how to manage it. The answer is fixed seeds.
+A statistical test with tolerance set at 2 standard errors will fail 5% of the time by construction. This is not a defect in the test. It is an inevitable consequence of using a statistical test with finite N. The question is not whether to accept this, but how to manage it. The answer is fixed seeds.
 
 Without a fixed seed, every CI run draws fresh randomness. On a pass rate of 95%, in a CI pipeline that runs 20 times per day, you will get approximately one false failure per day from this test alone. The first time it happens, someone investigates. They look at the distribution, see nothing wrong with the implementation, and conclude the test was a fluke. The second time, they investigate more briefly. By the tenth time, the team has learned to dismiss failures from this test. They mentally categorize it as "the flaky Monte Carlo test." When a real failure eventually occurs — because the implementation is actually wrong — it gets dismissed the same way. The bug ships.
 
@@ -391,7 +391,7 @@ The reason is the same as for deterministic validation: an uncovered behavior ID
 
 The coverage gate also prevents a scope-creep failure mode in spec writing. If the spec describes 40 Monte Carlo behaviors and the validation agent produces tests for 35, it is easy to rationalize that the 5 uncovered behaviors are minor or edge cases. They usually are not. Regime-switching return emission timing, path state isolation, and confidence interval coverage semantics are all examples of behaviors that look minor and are actually load-bearing. The coverage gate forces explicit acknowledgment of what is not being tested.
 
-## The MVP Discipline — What Validation Is For
+## The MVP Discipline: What Validation Is For
 
 The minimum viable set for this validation mode is three to six tests per component. This is a deliberate constraint, not a low bar. The goal of Mode 7 (spec-monte-carlo-validation) is different from the goal of Mode 9 (spec-test-gen, where the full test suite is generated before any production code). Mode 7 produces a validation suite that establishes the statistical properties the implementation must satisfy. Mode 9 produces a comprehensive test suite, including acceptance, invariant, and unit tests, that the implementation must satisfy. Conflating these produces one of two failures: an overly large Mode 7 suite that takes hours to run and delays the gate, or an under-covered Mode 9 suite that relies on Mode 7 tests to cover internal behavior they were never designed to test.
 
@@ -405,19 +405,19 @@ Produce an MVP suite: 3–6 tests per component. After MVP, optionally propose a
 ```
 ---
 
-The MVP per component requires: one degenerate test (exact behavior under zero variance), one statistical test (the core distributional property), and one negative test (invalid parameter rejection). Three tests establish the minimum correctness bar. The extended suite — additional statistical tests, edge cases, multi-parameter configurations — is Mode 9's responsibility, generated as part of the full test suite before implementation begins.
+The MVP per component requires: one degenerate test (exact behavior under zero variance), one statistical test (the core distributional property), and one negative test (invalid parameter rejection). Three tests establish the minimum correctness bar. The extended suite (additional statistical tests, edge cases, multi-parameter configurations) is Mode 9's responsibility, generated as part of the full test suite before implementation begins.
 
 This sequencing also serves a quality function: the Mode 7 tests are written before any implementation exists. They are written against the spec's public API contracts. They will compile only once the API is implemented (during Mode 10), at which point they act as acceptance tests. Tests written after implementation tend to follow the implementation's structure rather than the spec's contract. Tests written before implementation are forced to follow the spec. This is the same principle that applies to TDD in unit testing, applied at the architectural scale of a Monte Carlo validation suite.
 
 ## Putting It Together: The Validation Report Structure
 
-A complete `/spec-monte-carlo-validation` report for the Lumiscape Monte Carlo engine contains the following sections.
+A complete `/spec-monte-carlo-validation` report for the Monte Carlo engine contains the following sections.
 
 First, the prerequisite check: confirms spec-freeze.lock exists and its hash matches the checked-in version. If the lock is absent or the hash mismatches, the report halts immediately with a PREREQUISITE FAILED message. No validation can proceed against a moving spec.
 
 Second, the component inventory: lists all ten components (A through J) with their source anchors. For each component, lists the sources found, confirms at least two peer-reviewed sources exist, or outputs INSUFFICIENT EXISTING ART if not. The inventory is produced before any tests are specified, ensuring the source check is not retroactively applied to tests that have already been written.
 
-Third, the test specifications: for each component, lists all tests with the six required fields (property, sources, configuration, metric, tolerance, N with justification). No test appears without all six fields. A test specification without N justification is not a complete specification — it is an intent to write a test, not a test.
+Third, the test specifications: for each component, lists all tests with the six required fields (property, sources, configuration, metric, tolerance, N with justification). No test appears without all six fields. A test specification without N justification is not a complete specification. It is an intent to write a test, not a test.
 
 Fourth, the coverage gate analysis: maps every Monte Carlo behavior ID from every spec to at least one test in the suite. Lists any uncovered IDs. States PASS or FAIL on the coverage gate.
 

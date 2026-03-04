@@ -108,7 +108,7 @@ This catalog lists ALL known cross-module data flows. **Full runs trace every pa
 ```
 ---
 
-In the Lumiscape project, the catalog contains eleven paths. Each path is defined by its entry point, the specs it traverses, the modules it crosses, and the key handoffs where contracts must match. Three examples illustrate the range:
+In one production project, the catalog contains eleven paths. Each path is defined by its entry point, the specs it traverses, the modules it crosses, and the key handoffs where contracts must match. Three examples illustrate the range:
 
 The **retirement withdrawal flow** starts at `RetirementDistributionConfig` (LUM-DTO-030), passes through the RMD calculator (LUM-ENG-015) and withdrawal calculator, lands in YearSummary fields and derivation metrics (LUM-DTO-026, LUM-DTO-020), and triggers an `RMD_TRIGGERED` event (LUM-DTO-019). The path crosses from the DTO module into the engine module and back to DTOs. The key handoffs are: do the config fields that the calculator reads match the fields the DTO defines? Do the calculator's outputs match the YearSummaryField and MetricId enums? Do the event emission conditions match the EventType semantics?
 

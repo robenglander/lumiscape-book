@@ -29,11 +29,11 @@ Ensure that deterministic and Monte Carlo engines:
 ```
 ---
 
-Lumiscape has two distinct computational paths. The deterministic engine computes a single, exact retirement projection: given these assumptions, here is what your financial future looks like. The Monte Carlo engine computes thousands of scenarios by varying investment returns and applying stochastic shocks, then aggregates the results into probability distributions: given these assumptions, there is an N% chance your money lasts through retirement.
+The example system has two distinct computational paths. The deterministic engine computes a single, exact retirement projection: given these assumptions, here is what your financial future looks like. The Monte Carlo engine computes thousands of scenarios by varying investment returns and applying stochastic shocks, then aggregates the results into probability distributions: given these assumptions, there is an N% chance your money lasts through retirement.
 
 These two engines are developed, tested, and validated separately. The deterministic validation in Mode 6 verifies correctness against IRS tables and financial math. Mode 7 verifies that the stochastic components produce the correct distributional properties. But neither of those validations addresses a third category of problem: do the two engines agree on what they are computing?
 
-Two engines can each be internally correct while being semantically inconsistent with each other. That is the harder problem, because the symptoms do not look like bugs. Both engines run cleanly. Both pass their individual test suites. Both produce numbers that look plausible. But when a user looks at their retirement projection on one screen and their Monte Carlo success rate on another, those two numbers were computed using subtly different rules — and depending on the scenario, the difference might be small enough to ignore or large enough to reverse a planning decision.
+Two engines can each be internally correct while being semantically inconsistent with each other. That is the harder problem, because the symptoms do not look like bugs. Both engines run cleanly. Both pass their individual test suites. Both produce numbers that look plausible. But when a user looks at their retirement projection on one screen and their Monte Carlo success rate on another, those two numbers were computed using subtly different rules, and depending on the scenario, the difference might be small enough to ignore or large enough to reverse a planning decision.
 
 The failure modes are concrete. Let me walk through three of them before explaining how the integration validation catches them.
 
@@ -55,11 +55,11 @@ End balance = ($1,000,000 − $50,000) × 1.07 = $1,016,500
 
 The year-1 difference is $3,500. That might not seem like much. But this difference recurs every year, and the balances diverge as each year's starting balance is slightly different. Running these two regimes forward for 30 years on a realistic scenario produces a terminal wealth difference of roughly $26,000. Not a rounding error. A material difference in a projected financial outcome, existing purely because two engineers made a reasonable-sounding ordering choice without reading a shared spec that specified which order was canonical.
 
-**Failure mode 3: Real versus nominal spending floor.** The spending floor is the minimum annual withdrawal below which the simulation does not allow spending to drop. It can be defined in real terms — inflation-adjusted each year to maintain purchasing power — or in nominal terms — a fixed dollar amount for the entire simulation horizon. These two definitions produce the same number in year 0. They diverge immediately thereafter. At 3% annual inflation over 20 years, a real floor of $50,000 becomes $50,000 × (1.03)^20 = $90,306. The nominal floor is still $50,000.
+**Failure mode 3: Real versus nominal spending floor.** The spending floor is the minimum annual withdrawal below which the simulation does not allow spending to drop. It can be defined in real terms (inflation-adjusted each year to maintain purchasing power) or in nominal terms (a fixed dollar amount for the entire simulation horizon). These two definitions produce the same number in year 0. They diverge immediately thereafter. At 3% annual inflation over 20 years, a real floor of $50,000 becomes $50,000 × (1.03)^20 = $90,306. The nominal floor is still $50,000.
 
-In year 20, a portfolio that can support $75,000 in withdrawals satisfies the nominal floor but fails the real floor. The deterministic engine, using a real floor, marks this scenario as a partial failure. The Monte Carlo engine, using a nominal floor, marks it as a success. Run an inflation-stress test — 4% average inflation for 20 years — and the success rates diverge dramatically. The real-floor engine produces a materially lower success rate because the floor target is growing faster than the portfolio expected, while the nominal-floor engine has the floor locked at the baseline value and does not see the same pressure. Both engines are internally correct. Both are computing exactly what their spec says. But the user's success rate jumps by 15 percentage points when they switch from the detailed projection view to the probability summary — and nobody can explain why.
+In year 20, a portfolio that can support $75,000 in withdrawals satisfies the nominal floor but fails the real floor. The deterministic engine, using a real floor, marks this scenario as a partial failure. The Monte Carlo engine, using a nominal floor, marks it as a success. Run an inflation-stress test (4% average inflation for 20 years) and the success rates diverge dramatically. The real-floor engine produces a materially lower success rate because the floor target is growing faster than the portfolio expected, while the nominal-floor engine has the floor locked at the baseline value and does not see the same pressure. Both engines are internally correct. Both are computing exactly what their spec says. But the user's success rate jumps by 15 percentage points when they switch from the detailed projection view to the probability summary — and nobody can explain why.
 
-`/spec-integration` is the mode that catches all three of these failures. Its job is not to re-validate either engine individually. It verifies that the bridge between them is solid — that the two engines are computing the same thing when given the same inputs, and that their outputs are semantically aligned across every dimension that matters.
+`/spec-integration` is the mode that catches all three of these failures. Its job is not to re-validate either engine individually. It verifies that the bridge between them is solid: that the two engines are computing the same thing when given the same inputs, and that their outputs are semantically aligned across every dimension that matters.
 
 ## What Integration Mode Is Not Allowed to Do
 
@@ -87,13 +87,13 @@ The skill is explicit about its constraints: it cannot modify specs, re-validate
 
 Understanding why these constraints exist requires understanding what goes wrong when you remove them.
 
-If integration mode is allowed to modify specs, it becomes a mechanism for retroactively patching problems that should have been fixed in earlier phases. Suppose Mode 8 finds that the two engines define "success" differently. The natural temptation is to update one or both specs to align on a single definition and call it done. But this hides important information: which phase failed? Was the success definition ambiguous from the start — a Mode 2 failure, something the spec review should have caught? Was it clearly specified but inconsistent across specs — a Mode 3 failure? Was it clear and consistent but implemented incorrectly — a Mode 6 or Mode 7 failure? Patching it in Mode 8 closes the issue without understanding what broke upstream, which means the same class of problem will recur in the next feature.
+If integration mode is allowed to modify specs, it becomes a mechanism for retroactively patching problems that should have been fixed in earlier phases. Suppose Mode 8 finds that the two engines define "success" differently. The natural temptation is to update one or both specs to align on a single definition and call it done. But this hides important information: which phase failed? Was the success definition ambiguous from the start, a Mode 2 failure, something the spec review should have caught? Was it clearly specified but inconsistent across specs, a Mode 3 failure? Was it clear and consistent but implemented incorrectly — a Mode 6 or Mode 7 failure? Patching it in Mode 8 closes the issue without understanding what broke upstream, which means the same class of problem will recur in the next feature.
 
 If integration mode is allowed to introduce new requirements, it becomes a spec authoring session disguised as a validation session. Requirements introduced at this stage have not been reviewed, have not been prioritized, and have not been vetted against other specs for consistency. They are unilateral decisions made under pressure during validation, and they corrupt the spec corpus in ways that are hard to reverse.
 
-The classification system — SPEC DEFECT, IMPLEMENTATION DEFECT, TEST GAP, PARAMETER MISALIGNMENT — routes problems back to the correct phase. A SPEC DEFECT routes back to Mode 1 and Mode 2. An IMPLEMENTATION DEFECT routes back to Mode 6 or Mode 7, whichever engine has the bug. A TEST GAP routes back to whichever validation mode had insufficient scenario coverage. A PARAMETER MISALIGNMENT may be either an implementation defect or a spec ambiguity depending on whether the parameter mapping was specified. The classification tells you where to go, not what to do when you get there.
+The classification system (SPEC DEFECT, IMPLEMENTATION DEFECT, TEST GAP, PARAMETER MISALIGNMENT) routes problems back to the correct phase. A SPEC DEFECT routes back to Mode 1 and Mode 2. An IMPLEMENTATION DEFECT routes back to Mode 6 or Mode 7, whichever engine has the bug. A TEST GAP routes back to whichever validation mode had insufficient scenario coverage. A PARAMETER MISALIGNMENT may be either an implementation defect or a spec ambiguity depending on whether the parameter mapping was specified. The classification tells you where to go, not what to do when you get there.
 
-Mode 8 stops at classification because the engineer needs to see the full picture before deciding how to fix anything. A single integration run might surface three SPEC DEFECTs, two TEST GAPs, and one IMPLEMENTATION DEFECT. The correct response is not six individual patches — it is a prioritization decision about whether to address them serially, in parallel, or with a scoped re-architecture. Mode 8 provides the evidence. The engineer makes the call.
+Mode 8 stops at classification because the engineer needs to see the full picture before deciding how to fix anything. A single integration run might surface three SPEC DEFECTs, two TEST GAPs, and one IMPLEMENTATION DEFECT. The correct response is not six individual patches. It is a prioritization decision about whether to address them serially, in parallel, or with a scoped re-architecture. Mode 8 provides the evidence. The engineer makes the call.
 
 ## The Degeneracy Bridge: A Complete Test Design
 
@@ -134,13 +134,13 @@ flowchart TD
     style BRIDGE fill:#dbeafe
 ```
 
-The degeneracy bridge is the most important test in the integration mode. The formulation is clean: when stochastic variance is set to zero everywhere (σ=0 for all asset classes), every Monte Carlo path through the simulation is deterministic. No randomness. Every path follows the same trajectory. The Monte Carlo engine's output should be a degenerate distribution with all paths at the same value — and that value should equal the deterministic engine's output within one cent.
+The degeneracy bridge is the most important test in the integration mode. The formulation is clean: when stochastic variance is set to zero everywhere (σ=0 for all asset classes), every Monte Carlo path through the simulation is deterministic. No randomness. Every path follows the same trajectory. The Monte Carlo engine's output should be a degenerate distribution with all paths at the same value, and that value should equal the deterministic engine's output within one cent.
 
 Let me walk through a complete test design for a concrete scenario.
 
 **Scenario definition:** Person age 60, single, starting balance $1,000,000 in a tax-deferred IRA, planned retirement at age 65, spending $50,000 per year in real (inflation-adjusted) terms, 3% CPI assumption, 7% nominal return assumption, 30-year simulation horizon (to age 90), spending floor $30,000 real, standard tax configuration.
 
-**Deterministic engine configuration:** Return assumption 7.0% fixed for all years. No variance parameter — the engine is inherently deterministic.
+**Deterministic engine configuration:** Return assumption 7.0% fixed for all years. No variance parameter. The engine is inherently deterministic.
 
 **Monte Carlo engine configuration:** Same scenario object, return expectation 7.0%, σ=0.0 for all asset classes, seed=42, N=1000 paths.
 
@@ -148,7 +148,7 @@ Let me walk through a complete test design for a concrete scenario.
 
 **Verification procedure:**
 
-Step 1: Run the deterministic engine against the scenario. Capture the yearly state table — one row per simulation year, columns: year, age, start_balance, withdrawal, taxes, spending, end_balance, cumulative_cpi.
+Step 1: Run the deterministic engine against the scenario. Capture the yearly state table: one row per simulation year, columns: year, age, start_balance, withdrawal, taxes, spending, end_balance, cumulative_cpi.
 
 ```
 Year  Age  Start_Balance     Withdrawal    Taxes     Spending   End_Balance   CPI_Factor
@@ -160,7 +160,7 @@ Year  Age  Start_Balance     Withdrawal    Taxes     Spending   End_Balance   CP
 ...
 ```
 
-(The spending column is real spending — $50,000 × CPI factor for that year. The withdrawal covers spending plus taxes and may include required minimum distributions once the person reaches age 73.)
+(The spending column is real spending: $50,000 × CPI factor for that year. The withdrawal covers spending plus taxes and may include required minimum distributions once the person reaches age 73.)
 
 Step 2: Run the Monte Carlo engine with σ=0, seed=42, N=1000. For each of the 1000 paths, capture the same yearly state table format.
 
@@ -205,7 +205,7 @@ Any invariant satisfied in one engine but violated in the other = FAIL.
 ```
 ---
 
-Both engines must satisfy identical system invariants. The integration validation checks each invariant against both engines and verifies that the results agree. An invariant that holds in one engine but fails in the other is a defect — either in one engine's implementation or in the spec's failure to specify the invariant clearly enough to guarantee consistent implementation.
+Both engines must satisfy identical system invariants. The integration validation checks each invariant against both engines and verifies that the results agree. An invariant that holds in one engine but fails in the other is a defect, either in one engine's implementation or in the spec's failure to specify the invariant clearly enough to guarantee consistent implementation.
 
 **Balance continuity:** For every year y, end_balance[y] = start_balance[y] + returns[y] − withdrawals[y] − taxes[y] ± $0.01. Money is neither created nor destroyed. This seems obvious, but it can be violated in subtle ways that only emerge in edge cases.
 
@@ -213,11 +213,11 @@ Consider a scenario where the Monte Carlo engine applies returns to the start-of
 
 This failure would not appear in the deterministic engine's Mode 6 tests, because none of those scenarios triggered the ceiling. It would appear in Mode 7 only if the stochastic tests were specifically designed to generate high-return scenarios. The integration test surfaces it because both engines run against the same scenarios, and the accounting identity check applies to both.
 
-**Withdrawal reduces balance:** Withdrawals must decrease the account balance. Mathematically trivial — a withdrawal is a deduction — but can be violated in edge cases involving minimum requirements when the balance is insufficient.
+**Withdrawal reduces balance:** Withdrawals must decrease the account balance. Mathematically trivial (a withdrawal is a deduction) but can be violated in edge cases involving minimum requirements when the balance is insufficient.
 
 Concrete example: an account balance of $10 at age 73, where the RMD calculation requires a withdrawal of $5,000 based on the prior year's balance. The deterministic engine handles this by withdrawing the entire $10 balance and recording a $10 withdrawal (the maximum available). The Monte Carlo engine, implemented by a different engineer, handles this edge case differently: if the required withdrawal exceeds the available balance, it records a $0 withdrawal and flags the account as depleted. Both behaviors are defensible individually. But they violate the shared invariant: in the deterministic engine, the withdrawal reduced the balance (from $10 to $0). In the Monte Carlo engine, the withdrawal did not reduce the balance (it stayed at $10 until the depletion flag caused it to snap to $0 in the next step). The invariant check — withdrawal must reduce balance by exactly the recorded withdrawal amount — catches this because the balance arithmetic does not reconcile in the Monte Carlo path.
 
-This matters: the two engines will produce different end-of-simulation results for low-balance scenarios, which is precisely the scenario type that matters most for retirement planning — the scenario where the client's money runs out.
+This matters: the two engines will produce different end-of-simulation results for low-balance scenarios, which is precisely the scenario type that matters most for retirement planning: the scenario where the client's money runs out.
 
 **Spending monotonicity:** If spending is higher in every year (all else equal), terminal wealth must be lower. This invariant can be violated by tax interactions at bracket boundaries.
 
@@ -253,19 +253,19 @@ For each semantic element in the simulation, the integration validation reads th
 
 **Process:** For each semantic element (success, failure, floor, terminal wealth, spending, taxes, return application order), locate the definition in the deterministic runner spec and in the Monte Carlo runner spec. Reproduce both definitions. Annotate any difference. A difference is a finding, regardless of whether it appears significant. Many findings that appear insignificant in isolation turn out to matter in specific scenarios.
 
-**Concrete example — floor definition:** The deterministic runner spec says: "The spending floor is expressed in real (inflation-adjusted) dollars. In each simulation year, the floor is applied as spending_floor × cumulative_cpi, where cumulative_cpi is the product of all annual CPI factors from simulation start to the current year." The Monte Carlo runner spec says: "The floor is the minimum annual withdrawal amount below which spending cannot go."
+**Concrete example, floor definition:** The deterministic runner spec says: "The spending floor is expressed in real (inflation-adjusted) dollars. In each simulation year, the floor is applied as spending_floor × cumulative_cpi, where cumulative_cpi is the product of all annual CPI factors from simulation start to the current year." The Monte Carlo runner spec says: "The floor is the minimum annual withdrawal amount below which spending cannot go."
 
 These are not the same definition. The deterministic spec anchors the floor to real purchasing power using explicit CPI arithmetic. The Monte Carlo spec says "minimum annual withdrawal amount" without specifying whether that amount is real or nominal. An engineer implementing the Monte Carlo spec has to make an assumption, and "minimum annual withdrawal amount" sounds like a nominal amount — a fixed dollar value. The two implementations will agree in year 0 and diverge in every subsequent year by the CPI factor. By year 20 at 3% inflation, the deterministic engine is applying a floor of $90,306, and the Monte Carlo engine is applying a floor of $50,000.
 
 This mismatch should have been caught in Mode 3 (deep review), which specifically checks for semantic consistency across specs. If it was caught there and the specs were updated, the integration test should see identical definitions and pass. If it was not caught — or if the specs were updated but the implementations were not — the integration test catches it at the semantic level (definition mismatch = SPEC DEFECT) and at the numerical level (degeneracy test diverges in years with significant cumulative inflation = confirms the implementation reflects the mismatched definitions).
 
-**Concrete example — return application order:** The deterministic spec says: "In each simulation year, investment returns are applied to the start-of-year balance before withdrawals and taxes are computed." The Monte Carlo spec says: "The return for each simulation year is applied to the net balance after withdrawals." These are unambiguous, clearly written, and completely inconsistent. A SPEC DEFECT that Mode 3 should have caught. The integration mode catches it if Mode 3 missed it, and the degeneracy test quantifies the impact.
+**Concrete example, return application order:** The deterministic spec says: "In each simulation year, investment returns are applied to the start-of-year balance before withdrawals and taxes are computed." The Monte Carlo spec says: "The return for each simulation year is applied to the net balance after withdrawals." These are unambiguous, clearly written, and completely inconsistent. A SPEC DEFECT that Mode 3 should have caught. The integration mode catches it if Mode 3 missed it, and the degeneracy test quantifies the impact.
 
 The arithmetic matters here. Return-before-withdrawal: balance × (1 + r) − withdrawal. Return-after-withdrawal: (balance − withdrawal) × (1 + r). The difference is withdrawal × r. At a 7% return and $50,000 withdrawal, the difference is $3,500 per year. Over 30 years with compounding, this accumulates to approximately $26,000 in terminal wealth difference. To compute the exact accumulation, note that the per-year error is withdrawal × r, but the balance it causes a difference on grows with the return rate: the year-1 error of $3,500 becomes $3,500 × (1.07)^29 ≈ $25,900 by year 30 if left unaddressed. A finding this size is material for a retirement plan.
 
-**Concrete example — success definition:** The deterministic spec says: "A scenario is classified as successful if the account balance remains positive at the end of the simulation horizon." The Monte Carlo spec says: "A simulation path is classified as successful if spending in every year meets or exceeds the spending floor." A scenario where the portfolio survives intact but the client had to cut spending below the floor in years 18–22 due to a sequence-of-returns event is a success by the terminal-balance definition and a failure by the floor-maintenance definition. A scenario where the portfolio goes to exactly zero in the final month triggers a floor failure in that final year by the floor-maintenance definition if the floor was non-zero.
+**Concrete example, success definition:** The deterministic spec says: "A scenario is classified as successful if the account balance remains positive at the end of the simulation horizon." The Monte Carlo spec says: "A simulation path is classified as successful if spending in every year meets or exceeds the spending floor." A scenario where the portfolio survives intact but the client had to cut spending below the floor in years 18–22 due to a sequence-of-returns event is a success by the terminal-balance definition and a failure by the floor-maintenance definition. A scenario where the portfolio goes to exactly zero in the final month triggers a floor failure in that final year by the floor-maintenance definition if the floor was non-zero.
 
-Run 1000 Monte Carlo paths through a scenario with average 6.5% returns and 10% return volatility. The terminal-balance success rate might be 83%. The floor-maintenance success rate might be 71%. The difference is not noise — it is a structural feature of the two definitions and will be stable across seeds. When the user sees 83% in one view and 71% in another, they have no way to know they are looking at different quantities.
+Run 1000 Monte Carlo paths through a scenario with average 6.5% returns and 10% return volatility. The terminal-balance success rate might be 83%. The floor-maintenance success rate might be 71%. The difference is not noise. It is a structural feature of the two definitions and will be stable across seeds. When the user sees 83% in one view and 71% in another, they have no way to know they are looking at different quantities.
 
 ## Parameter Propagation: The Test
 
@@ -290,7 +290,7 @@ Parameter propagation is the simplest class of integration failure to describe a
 
 **The test procedure:** Configure a scenario with specific non-default values for every parameter that both engines read. For parameters that are particularly sensitive — spending floor, inflation rate, starting balance, state tax rate — choose values that are clearly not defaults so that a default-initialization bug is immediately visible.
 
-Example scenario configuration: starting_balance=$1,234,567 (not a round number — defaults are round numbers), annual_spending=$52,750 (not a round number), inflation=2.5% (not the 3.0% default), spending_floor=$38,500 (not zero — a non-trivial floor), state_tax_rate=4.5% (non-zero, non-default), return_mean=7.25% (not the standard 7.0%).
+Example scenario configuration: starting_balance=$1,234,567 (not a round number; defaults are round numbers), annual_spending=$52,750 (not a round number), inflation=2.5% (not the 3.0% default), spending_floor=$38,500 (not zero — a non-trivial floor), state_tax_rate=4.5% (non-zero, non-default), return_mean=7.25% (not the standard 7.0%).
 
 Run the deterministic engine. Record all outputs. Configure the Monte Carlo engine with the same scenario, set σ=0. Run 100 paths (fewer needed here — this is a propagation check, not a statistical check). Assert degeneracy: all paths match the deterministic output within $0.01.
 
@@ -464,12 +464,12 @@ The integration report is the Mode 8 artifact that gates progression. Before Mod
 
 ## Where Integration Validation Fits in the Pipeline
 
-The twelve-mode pipeline is designed so that each mode has a clear scope and a clear artifact. Mode 6 produces a deterministic validation report. Mode 7 produces a Monte Carlo validation report. Mode 8 produces an integration validation report. These are not redundant — they address different categories of failure, and they gate on each other.
+The twelve-mode pipeline is designed so that each mode has a clear scope and a clear artifact. Mode 6 produces a deterministic validation report. Mode 7 produces a Monte Carlo validation report. Mode 8 produces an integration validation report. These are not redundant. They address different categories of failure, and they gate on each other.
 
 Running Mode 8 before Modes 6 and 7 breaks the information structure. If Mode 8 finds a discrepancy during degeneracy testing, it cannot determine whether the discrepancy is in the deterministic engine, the Monte Carlo engine, or the bridge between them, without knowing whether each engine passes its individual validation. With clean Mode 6 and Mode 7 reports in hand, any Mode 8 finding is definitionally a bridge problem or a cross-engine semantic problem — the individual engines are known-good, so the discrepancy must be in how they relate to each other.
 
 This sequencing is also why the integration mode is forbidden from re-validating deterministic math or re-validating Monte Carlo distributions. Those validations were done. They passed. They are in the record. If the integration mode were to re-run those validations and find a failure, it would mean the upstream modes were incomplete — and the correct response is to go back and fix Mode 6 or Mode 7, not to surface the finding in Mode 8 where it cannot be properly classified or routed. Mode 8 assumes the prior modes produced clean reports. If they did not, Mode 8 has no business running.
 
-Do not skip modes to save time. Skipping Mode 6 and running Mode 8 directly is not an accelerated pipeline — it is a broken pipeline that will produce Mode 8 findings that cannot be correctly classified, because the baseline is not clean. The modes are cheap in sequence and expensive out of sequence, because out-of-sequence execution breaks the information structure that makes findings actionable.
+Do not skip modes to save time. Skipping Mode 6 and running Mode 8 directly is not an accelerated pipeline. It is a broken pipeline that will produce Mode 8 findings that cannot be correctly classified, because the baseline is not clean. The modes are cheap in sequence and expensive out of sequence, because out-of-sequence execution breaks the information structure that makes findings actionable.
 
-Two engines that compute the same thing consistently, across all scenario types, across all boundary conditions, with shared invariants and aligned semantics — that is a system you can build on. The integration validation is the test that confirms you have that foundation before the build begins.
+Two engines that compute the same thing consistently, across all scenario types, across all boundary conditions, with shared invariants and aligned semantics: that is a system you can build on. The integration validation is the test that confirms you have that foundation before the build begins.

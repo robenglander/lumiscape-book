@@ -25,9 +25,9 @@ Mode 10 gates on two artifacts: the spec freeze lock and the test-gen report fro
 
 As a spec author, reviewer, and test writer, Claude's job is to find gaps, flag ambiguities, and ensure completeness. Interpretation is appropriate — you are helping the engineer express intent precisely. When you see "compute the applicable tax," you ask whether that means the marginal rate, the effective rate, or the total dollar amount, and you push until the spec is clear. Judgment calls are not just allowed, they are required — when two reasonable interpretations exist, you ask which one the engineer intends. You are a thought partner, sharpening the spec.
 
-As an implementer, none of that applies. The specs are contracts. Interpretation is not appropriate because the spec says what it means and means what it says. Judgment calls are not allowed because every behavioral decision belongs to the spec, not to the implementer. If the spec is ambiguous, that ambiguity should have been caught in review, and if it wasn't, the right response is a formal revision request — not a quiet decision.
+As an implementer, none of that applies. The specs are contracts. Interpretation is not appropriate because the spec says what it means and means what it says. Judgment calls are not allowed because every behavioral decision belongs to the spec, not to the implementer. If the spec is ambiguous, that ambiguity should have been caught in review, and if it wasn't, the right response is a formal revision request, not a quiet decision.
 
-This is easy to state and consistently hard to internalize, because the same reasoning that makes an implementer effective — filling in gaps, making sensible decisions, keeping things moving — is precisely what the discipline is preventing. The implementer is not being asked to be less capable. They are being asked to redirect capability away from interpretation and toward execution.
+This is easy to state and consistently hard to internalize, because the same reasoning that makes an implementer effective (filling in gaps, making sensible decisions, keeping things moving) is precisely what the discipline is preventing. The implementer is not being asked to be less capable. They are being asked to redirect capability away from interpretation and toward execution.
 
 To make the cost of quiet interpretation concrete: consider the RMD age threshold. A spec says "participants must begin taking Required Minimum Distributions when they turn 73." This is genuinely ambiguous in a way that matters. "When they turn 73" could mean the calendar year in which they reach age 73 (the IRS SECURE 2.0 rule, which actually follows this interpretation for RMD start dates) or it could mean the actual date of the participant's 73rd birthday. An implementer reads the spec, thinks "that's clearly the calendar year — that's how the IRS rule works," and implements accordingly. The choice is reasonable. The test they write is: participant born in 1951 is eligible for RMDs in 2024. Tests pass. Implementation ships.
 
@@ -51,7 +51,7 @@ flowchart TD
     style DONE fill:#f0fdf4
 ```
 
-## Immutable Specs — The Four Prohibitions
+## Immutable Specs: The Four Prohibitions
 
 ---
 **`/spec-execution` instructions — §PHASE 1 — FREEZE SPEC LAYER:**
@@ -81,11 +81,11 @@ The skill establishes four specific prohibitions on what Claude may not do to a 
 
 **Prohibition 3: Not Resolve Ambiguity by Assumption.** If the spec says "compute tax using the applicable bracket" and does not specify which tax year's bracket schedule to use, you do not assume the current year. You stop and file a Formal Spec Revision Request. The assumption seems harmless until a user runs a retirement projection for 2040 and discovers that the 2024 bracket schedule was used for all years because the spec was ambiguous and the implementer silently chose the simplest interpretation. Simulations are forward-looking. Bracket version selection is a consequential behavioral decision. It belongs in the spec.
 
-**Prohibition 4: Not Add Behaviors.** If the spec does not describe what happens when all accounts are exhausted but withdrawals are still required, you do not add "default to zero withdrawal" or "return an error" or any other behavior. You report SPEC-UNDERSPECIFICATION. Zero withdrawal and error reporting are both plausible behaviors with different downstream effects on the simulation. The spec's silence is not an invitation to choose — it is a gap that must be filled by the engineer.
+**Prohibition 4: Not Add Behaviors.** If the spec does not describe what happens when all accounts are exhausted but withdrawals are still required, you do not add "default to zero withdrawal" or "return an error" or any other behavior. You report SPEC-UNDERSPECIFICATION. Zero withdrawal and error reporting are both plausible behaviors with different downstream effects on the simulation. The spec's silence is not an invitation to choose. It is a gap that must be filled by the engineer.
 
-These prohibitions are reinforcing. Taken together, they establish that the implementation is a faithful translation of the spec into executable code — nothing added, nothing interpreted, nothing refined. The spec is the design. The implementation is the artifact.
+These prohibitions are reinforcing. Taken together, they establish that the implementation is a faithful translation of the spec into executable code: nothing added, nothing interpreted, nothing refined. The spec is the design. The implementation is the artifact.
 
-## The Formal Spec Revision Request — Full Anatomy
+## The Formal Spec Revision Request: Full Anatomy
 
 ---
 **`/spec-execution` instructions — §FORMAL SPEC REVISION REQUEST:**
@@ -155,15 +155,15 @@ Implementation stops after this request. No code for LUM-ENG-015, no code for an
 
 Now look at each element of the request and why it is structured as it is.
 
-The **conflict type** must be from the taxonomy. Not "there is an issue with the dependency," not "I noticed a potential problem." The taxonomy term is specific — DEPENDENCY-CONFLICT conveys exactly what kind of problem this is and tells the engineer immediately what category of decision is required. Free-text descriptions force the engineer to read and interpret before understanding what kind of problem it is. The taxonomy does that work upfront.
+The **conflict type** must be from the taxonomy. Not "there is an issue with the dependency," not "I noticed a potential problem." The taxonomy term is specific: DEPENDENCY-CONFLICT conveys exactly what kind of problem this is and tells the engineer immediately what category of decision is required. Free-text descriptions force the engineer to read and interpret before understanding what kind of problem it is. The taxonomy does that work upfront.
 
 The **description is one paragraph**. One paragraph is enough. If you need more, you are including implementation details the engineer doesn't need to make the decision. The description must answer three questions: what is the problem, where is it, and why can the implementation not resolve it without engineering input. If it answers those three, it is complete. More than that is too long.
 
-The **options must have trade-offs**, not just labels. "Option A: add the dependency" is not useful. "Option A: add the dependency — simplest change, but introduces engine→dto coupling that may conflict with the layered architecture" is useful. The engineer can read the trade-offs and make an informed decision without re-deriving the implications of each option.
+The **options must have trade-offs**, not just labels. "Option A: add the dependency" is not useful. "Option A: add the dependency; simplest change, but introduces engine→dto coupling that may conflict with the layered architecture" is useful. The engineer can read the trade-offs and make an informed decision without re-deriving the implications of each option.
 
 The **recommendation is optional**. When Claude has a clear basis for preferring one option — because it is consistent with existing architectural decisions elsewhere in the project — it states a recommendation. When the choice genuinely depends on an architectural preference that only the engineer can express, the recommendation is omitted. If Claude recommends Option A and the engineer has a strong reason to choose Option B, the recommendation creates friction. When in doubt, omit it and let the options speak.
 
-## The Conflict Taxonomy — Deep Dive
+## The Conflict Taxonomy: Deep Dive
 
 ---
 **`/spec-execution` instructions — §CONFLICT TAXONOMY:**
@@ -237,21 +237,21 @@ flowchart TD
     style JUDGMENT fill:#dcfce7
 ```
 
-**DEPENDENCY-CONFLICT** is the most common conflict in a multi-module Maven project, and it is the one where implementers are most tempted to "just fix it" without a formal request. The temptation is understandable: adding a Maven dependency is a two-line change in pom.xml, and it feels mechanical rather than architectural. But dependency direction encodes architecture. If lumiscape-engine depends on lumiscape-dto, that is a design statement: the engine layer knows about DTO types. If lumiscape-engine then also starts to depend on lumiscape-service for some other type, you now have engine depending on service, which is supposed to depend on engine. You have created a cycle. Cycles in a Maven multi-module build are not warnings — they are build failures. The implementer who "just added the dependency" has now broken a module they never touched, for a reason not visible at the call site.
+**DEPENDENCY-CONFLICT** is the most common conflict in a multi-module Maven project, and it is the one where implementers are most tempted to "just fix it" without a formal request. The temptation is understandable: adding a Maven dependency is a two-line change in pom.xml, and it feels mechanical rather than architectural. But dependency direction encodes architecture. If lumiscape-engine depends on lumiscape-dto, that is a design statement: the engine layer knows about DTO types. If lumiscape-engine then also starts to depend on lumiscape-service for some other type, you now have engine depending on service, which is supposed to depend on engine. You have created a cycle. Cycles in a Maven multi-module build are not warnings. They are build failures. The implementer who "just added the dependency" has now broken a module they never touched, for a reason not visible at the call site.
 
 Even if no cycle results, the dependency direction is wrong. Layers are supposed to depend downward: service depends on engine depends on dto. If engine suddenly depends on service, the layered architecture is violated. Future engineers reading the pom.xml won't know whether this was intentional or accidental. The spec doesn't reflect it. The architecture documentation doesn't reflect it. A quiet addition has introduced a permanent ambiguity into the codebase structure.
 
-**MISSING-DEFINITION** catches the gap between what a spec references and what is actually defined. Consider: LUM-AI-014 describes ActionDispatcher and states that it "consults the ActionRegistry to look up the ActionExecutor for the parsed action." The ActionRegistry is referenced as though it were a defined interface, but no spec in lumiscape-ai or any other module defines what ActionRegistry is — its interface, its method signatures, its contract. The implementation cannot proceed because it does not know what to implement. You cannot write `ActionRegistry registry` without knowing whether ActionRegistry has a method called `lookup(String action)` or `getExecutor(ParsedAction action)` or something else entirely. The method signature determines what the caller does with the result, and that determines how ActionDispatcher is structured.
+**MISSING-DEFINITION** catches the gap between what a spec references and what is actually defined. Consider: LUM-AI-014 describes ActionDispatcher and states that it "consults the ActionRegistry to look up the ActionExecutor for the parsed action." The ActionRegistry is referenced as though it were a defined interface, but no spec in lumiscape-ai or any other module defines what ActionRegistry is: its interface, its method signatures, its contract. The implementation cannot proceed because it does not know what to implement. You cannot write `ActionRegistry registry` without knowing whether ActionRegistry has a method called `lookup(String action)` or `getExecutor(ParsedAction action)` or something else entirely. The method signature determines what the caller does with the result, and that determines how ActionDispatcher is structured.
 
 Filing a MISSING-DEFINITION request surfaces this gap explicitly. The engineer learns that they forgot to spec the ActionRegistry and can write LUM-AI-014b or update LUM-AI-014 to include the interface definition. The implementation waits. This is the correct outcome.
 
-**CROSS-SPEC-CONTRADICTION** is the most expensive conflict to resolve after the fact. Consider a contradiction across the simulation stack: LUM-ENG-020 says MonteCarloRunner produces a StochasticResults object. LUM-DTO-039 defines StochasticResults with 14 specific fields. LUM-SVC-004 says the simulation service receives MonteCarloResults from the runner — note the different type name. Two type names: StochasticResults (from LUM-ENG-020 and LUM-DTO-039) and MonteCarloResults (from LUM-SVC-004). Are these the same type with two names? Different types with an implied mapping? The specs don't say. If they are the same type and you rename one, you break whichever spec used the original name. If they are different types, you need a mapper that neither spec defines. Stop and report.
+**CROSS-SPEC-CONTRADICTION** is the most expensive conflict to resolve after the fact. Consider a contradiction across the simulation stack: LUM-ENG-020 says MonteCarloRunner produces a StochasticResults object. LUM-DTO-039 defines StochasticResults with 14 specific fields. LUM-SVC-004 says the simulation service receives MonteCarloResults from the runner. Note the different type name. Two type names: StochasticResults (from LUM-ENG-020 and LUM-DTO-039) and MonteCarloResults (from LUM-SVC-004). Are these the same type with two names? Different types with an implied mapping? The specs don't say. If they are the same type and you rename one, you break whichever spec used the original name. If they are different types, you need a mapper that neither spec defines. Stop and report.
 
-**MODULE-BOUNDARY-VIOLATION** prevents the gradual erosion of module boundaries through implementation-time convenience decisions. The violation typically looks innocent: "I need the RetirementPlan type in lumiscape-ai for the ActionDispatcher, and it is defined in lumiscape-dto, and I could just add that dependency..." But lumiscape-ai is the AI inference layer. It parses user commands. It should not know about RetirementPlan — it should produce a ParsedCommand, which the service layer translates into a query against the RetirementPlan. If lumiscape-ai starts importing RetirementPlan, the AI layer is now coupled to the domain model, which means changes to RetirementPlan require changes to the AI layer even when the command vocabulary has not changed. The right answer is a thinner interface — an ActionContext or similar — that the AI layer uses without knowing about RetirementPlan.
+**MODULE-BOUNDARY-VIOLATION** prevents the gradual erosion of module boundaries through implementation-time convenience decisions. The violation typically looks innocent: "I need the RetirementPlan type in lumiscape-ai for the ActionDispatcher, and it is defined in lumiscape-dto, and I could just add that dependency..." But lumiscape-ai is the AI inference layer. It parses user commands. It should not know about RetirementPlan; it should produce a ParsedCommand, which the service layer translates into a query against the RetirementPlan. If lumiscape-ai starts importing RetirementPlan, the AI layer is now coupled to the domain model, which means changes to RetirementPlan require changes to the AI layer even when the command vocabulary has not changed. The right answer is a thinner interface — an ActionContext or similar — that the AI layer uses without knowing about RetirementPlan.
 
 **SPEC-UNDERSPECIFICATION** is the hardest conflict to catch in review, because reviewers often fill in the unspecified case intuitively without realizing the spec doesn't say it. Consider LUM-ENG-015 specifying withdrawal ordering: traditional IRA first, then Roth IRA. But what happens when there are multiple traditional IRAs? The spec doesn't say. Should they be withdrawn pro-rata? In order of account creation date? In alphabetical order by account name? In order of return rate, depleting the lowest-performing account first? Each answer is financially different and each is a reasonable interpretation of "traditional IRA first." The spec's silence means the implementer cannot choose without making a behavioral decision that belongs to the spec. File the request, and the engineer specifies the ordering rule explicitly.
 
-**MINOR-API-MISMATCH** can be resolved by the implementer because it does not affect behavior. The spec shows `computeRetirementFraction(Person person, int year)`, but the actual compiled type uses `PersonConfig` instead of `Person`. This is a naming inconsistency between the spec (written when the type was called Person) and the implemented type. The behavior — compute retirement fraction given a person and a year — is identical. Resolve by matching the compiled type, and add a comment:
+**MINOR-API-MISMATCH** can be resolved by the implementer because it does not affect behavior. The spec shows `computeRetirementFraction(Person person, int year)`, but the actual compiled type uses `PersonConfig` instead of `Person`. This is a naming inconsistency between the spec (written when the type was called Person) and the implemented type. The behavior (compute retirement fraction given a person and a year) is identical. Resolve by matching the compiled type, and add a comment:
 
 ```java
 // LUM-ENG-004 uses Person; actual type is PersonConfig per LUM-DTO-001
@@ -267,7 +267,7 @@ The comment preserves traceability. A future reader following the spec reference
 private final TreeMap<AccountId, WithdrawalResult> withdrawalResults = new TreeMap<>();
 ```
 
-The distinction between STOP and JUDGMENT conflicts is consistently: does resolving it require a behavioral decision that belongs to the engineer, or is it a surface representation difference that preserves the spec's behavioral intent? If behavioral — stop. If representational — resolve and document.
+The distinction between STOP and JUDGMENT conflicts is consistently: does resolving it require a behavioral decision that belongs to the engineer, or is it a surface representation difference that preserves the spec's behavioral intent? If behavioral, stop. If representational, resolve and document.
 
 ## The Test Suite Is Already Here
 
@@ -352,9 +352,9 @@ MAINTAINABLE OVER TIME
 ```
 ---
 
-These rules govern how production code is written. These rules are not style guidelines — they prevent categories of defects that tests cannot catch and that become exponentially more expensive to fix as the codebase grows.
+These rules govern how production code is written. These rules are not style guidelines. They prevent categories of defects that tests cannot catch and that become exponentially more expensive to fix as the codebase grows.
 
-### Architectural Separation — Purity as a Design Principle
+### Architectural Separation: Purity as a Design Principle
 
 A pure function takes inputs and returns outputs without side effects. It does not read from databases, call external services, modify shared state, or depend on the current time. Purity is the fundamental property that makes unit testing possible without mocking infrastructure.
 
@@ -376,7 +376,7 @@ public class RmdCalculator {
 }
 ```
 
-Testing this requires a database (or a mock of the repository). With a database, the test depends on the database having the right data. With a mock, the test is not testing the calculator — it is testing that the calculator calls the mock with the right arguments. Neither approach gives you a test of the actual computation.
+Testing this requires a database (or a mock of the repository). With a database, the test depends on the database having the right data. With a mock, the test is not testing the calculator; it is testing that the calculator calls the mock with the right arguments. Neither approach gives you a test of the actual computation.
 
 The corrected design:
 
@@ -420,11 +420,11 @@ The architectural separation principle applies to all layers:
 
 If you find yourself autowiring a repository inside a calculator, stop and redesign. The calculator should not know where the data comes from.
 
-### Determinism First — Explicit Randomness Injection
+### Determinism First: Explicit Randomness Injection
 
 The deterministic engine must remain pure. No calls to `Math.random()`, `System.currentTimeMillis()`, `UUID.randomUUID()` (when used for non-deterministic ID generation), or any other global state access inside domain logic. These calls make the domain logic non-deterministic, which means two runs with the same inputs produce different outputs, which means tests are unreliable.
 
-For Monte Carlo simulation, randomness is required — but it must be injected explicitly:
+For Monte Carlo simulation, randomness is required, but it must be injected explicitly:
 
 ```java
 // WRONG: global state dependency
@@ -482,9 +482,9 @@ void givenSeeded42_whenRunMonteCarlo_thenResultIsReproducible() {
 
 Neither test is possible if randomness is accessed globally.
 
-### State Discipline — Explicit Transitions, No Hidden Mutation
+### State Discipline: Explicit Transitions, No Hidden Mutation
 
-Simulation engines accumulate state across years. Each year builds on the previous year's ending balances, tax carryforwards, and accumulated metrics. All of this state must be explicit — visible in the method signatures, not hidden in instance fields.
+Simulation engines accumulate state across years. Each year builds on the previous year's ending balances, tax carryforwards, and accumulated metrics. All of this state must be explicit: visible in the method signatures, not hidden in instance fields.
 
 The hidden mutation anti-pattern:
 
@@ -504,7 +504,7 @@ public class YearProcessor {
 }
 ```
 
-The problem is not that carryover is being tracked — it might be required. The problem is that the carryover is invisible. When this class is tested in isolation, the test must know to set up `pendingTaxAdjustment` before calling `process()`. In production, the caller must call `process()` in year order and cannot safely call it out of order or in parallel. The hidden state creates invisible coupling between calls.
+The problem is not that carryover is being tracked; it might be required. The problem is that the carryover is invisible. When this class is tested in isolation, the test must know to set up `pendingTaxAdjustment` before calling `process()`. In production, the caller must call `process()` in year order and cannot safely call it out of order or in parallel. The hidden state creates invisible coupling between calls.
 
 The corrected design makes all state explicit:
 
@@ -537,7 +537,7 @@ for (int year = startYear; year <= endYear; year++) {
 
 Now the state transition is visible. Every call to `process()` shows exactly what state it receives and exactly what state it produces. The method can be tested in isolation with any carryover value. It can be called in any order for testing purposes. It cannot accidentally share state between invocations.
 
-### Error Handling Discipline — Explicit Failure Paths
+### Error Handling Discipline: Explicit Failure Paths
 
 Silent fallbacks are a form of specification violation. When a spec says "withdraw from the traditional IRA," and the implementation silently withdraws less than requested because the balance is insufficient, the system has changed the behavior without reporting the change. The caller thinks the full withdrawal was made. The simulation proceeds on false premises.
 
@@ -572,7 +572,7 @@ public WithdrawalResult withdrawFromAccount(long requestedCents, long availableB
 }
 ```
 
-The caller receives a `WithdrawalResult` that explicitly reports whether the withdrawal succeeded and how much was actually withdrawn. The caller must handle the `INSUFFICIENT` case — it cannot be ignored without a compile error (if `WithdrawalResult` is a sealed class with cases) or at least a visible branch in the code. The failure is visible, traceable, and testable.
+The caller receives a `WithdrawalResult` that explicitly reports whether the withdrawal succeeded and how much was actually withdrawn. The caller must handle the `INSUFFICIENT` case; it cannot be ignored without a compile error (if `WithdrawalResult` is a sealed class with cases) or at least a visible branch in the code. The failure is visible, traceable, and testable.
 
 The no-swallowed-exceptions rule applies to exception handling as well:
 
@@ -597,7 +597,7 @@ try {
 }
 ```
 
-### Tolerances and Rounding — Precision as a Specification
+### Tolerances and Rounding: Precision as a Specification
 
 Rounding is not a trivial detail. In financial computation, the rounding mode, the rounding point (where in the calculation you round), and the tolerance used for comparisons are all behavioral specifications. If the spec doesn't define them, that is SPEC-UNDERSPECIFICATION. If the spec does define them, implement them exactly.
 
@@ -634,11 +634,11 @@ BigDecimal taxUnrounded = income.multiply(rate);
 long taxCents = taxUnrounded.setScale(0, RoundingMode.HALF_UP).longValueExact();
 ```
 
-`longValueExact()` throws ArithmeticException if the result has a nonzero fractional part after scaling — it is the correct method when you want to catch unexpected fractional-cent results. `longValue()` silently truncates, which is the rounding mode you did not specify.
+`longValueExact()` throws ArithmeticException if the result has a nonzero fractional part after scaling; it is the correct method when you want to catch unexpected fractional-cent results. `longValue()` silently truncates, which is the rounding mode you did not specify.
 
-The tolerance for comparison in tests follows from the rounding mode. When a single HALF_UP rounding operation is applied, the maximum error is 0.5 cents (which rounds to 0 in cent arithmetic). When multiple rounding operations are composed — as in a tax calculation that rounds each bracket separately before summing — the maximum accumulated error per sum is n × 0.5 cents where n is the number of independently rounded terms. In practice, for a tax calculation with at most 7 brackets, the maximum accumulated error is 3 cents. Use `within(3L)` for assertions on total computed tax, and `isEqualTo()` for assertions on individual bracket computations where only one rounding operation is applied.
+The tolerance for comparison in tests follows from the rounding mode. When a single HALF_UP rounding operation is applied, the maximum error is 0.5 cents (which rounds to 0 in cent arithmetic). When multiple rounding operations are composed (as in a tax calculation that rounds each bracket separately before summing) the maximum accumulated error per sum is n × 0.5 cents where n is the number of independently rounded terms. In practice, for a tax calculation with at most 7 brackets, the maximum accumulated error is 3 cents. Use `within(3L)` for assertions on total computed tax, and `isEqualTo()` for assertions on individual bracket computations where only one rounding operation is applied.
 
-### Naming and Traceability — Every Class Traces Back
+### Naming and Traceability: Every Class Traces Back
 
 Every production class and method should trace back to a spec. The naming discipline enforces this: class names and method names use the vocabulary of the spec, not the vocabulary of the implementer. If the spec calls the component `RetirementWithdrawalCalculator`, the class is named `RetirementWithdrawalCalculator`, not `WithdrawalComputer` or `RmdProcessor` or anything else the implementer might prefer.
 
@@ -646,7 +646,7 @@ This is not just a naming convention. It is a traceability mechanism. When you r
 
 The same principle applies to method names. The spec says "compute the Required Minimum Distribution for the given account and participant." The method is `computeRmd()`. Not `getRmd()` (which implies retrieval, not computation), not `calculate()` (which is ambiguous about what is being calculated), not `processRequiredDistribution()` (which uses different vocabulary). The method name is the spec vocabulary rendered as code.
 
-When a MINOR-API-MISMATCH forces a deviation — the spec says `computeRetirementFraction(Person person, int year)` but the actual type is `PersonConfig` — the comment preserves the traceability and explains the deviation. A future engineer following the spec reference finds the code immediately and understands why the parameter type differs. Without the comment, they see a mismatch and cannot tell whether it is an intentional deviation, an oversight, or a bug.
+When a MINOR-API-MISMATCH forces a deviation (the spec says `computeRetirementFraction(Person person, int year)` but the actual type is `PersonConfig`) the comment preserves the traceability and explains the deviation. A future engineer following the spec reference finds the code immediately and understands why the parameter type differs. Without the comment, they see a mismatch and cannot tell whether it is an intentional deviation, an oversight, or a bug.
 
 ## Pre-Implementation Module Checklist
 

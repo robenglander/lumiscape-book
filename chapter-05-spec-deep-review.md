@@ -2,17 +2,17 @@
 
 ## The Cross-Spec Consistency Problem
 
-Every spec review in Chapter 4 validates one spec in isolation. That is necessary but not sufficient. A system is not a collection of independent specs — it is a network of specs that reference each other, share types, define interfaces that other specs consume, and collectively describe behaviors that emerge from their interactions. A spec that is individually correct can still be wrong in the context of the system it belongs to.
+Every spec review in Chapter 4 validates one spec in isolation. That is necessary but not sufficient. A system is not a collection of independent specs. It is a network of specs that reference each other, share types, define interfaces that other specs consume, and collectively describe behaviors that emerge from their interactions. A spec that is individually correct can still be wrong in the context of the system it belongs to.
 
-The simplest version of this is dependent spec drift. You have a normative source — a spec that defines the authoritative list of something, say the eight valid what-if change targets in the grammar vocabulary. Ten other specs reference those targets. When the normative source changes — two targets renamed, one removed — you need to update all ten. In practice you update three or four and miss the rest. The missed specs still carry the old vocabulary. Each one passes its own review. None of them is internally inconsistent. But they are all wrong in the context of the system, because they describe a vocabulary that no longer exists.
+The simplest version of this is dependent spec drift. You have a normative source, a spec that defines the authoritative list of something, say the eight valid what-if change targets in the grammar vocabulary. Ten other specs reference those targets. When the normative source changes (two targets renamed, one removed) you need to update all ten. In practice you update three or four and miss the rest. The missed specs still carry the old vocabulary. Each one passes its own review. None of them is internally inconsistent. But they are all wrong in the context of the system, because they describe a vocabulary that no longer exists.
 
-Here is what that looks like in practice. LUM-AI-018 defines the grammar vocabulary for the AI module. At one point the what_if change targets were a grouped set of five: `life_events`, `assumptions`, `marital_trust`, `spending`, `income`. This seemed reasonable as a grouping, but implementation revealed that `life_events` needed to break apart — the AI needed to distinguish between retirement, social security, death, and relocation to correctly parameterize the simulation. The vocabulary was refactored to eight fine-grained targets: `retirement`, `social_security`, `death`, `relocation`, `assumptions`, `marital_trust`, `spending`, `income`.
+Here is what that looks like in practice. LUM-AI-018 defines the grammar vocabulary for the AI module. At one point the what_if change targets were a grouped set of five: `life_events`, `assumptions`, `marital_trust`, `spending`, `income`. This seemed reasonable as a grouping, but implementation revealed that `life_events` needed to break apart: the AI needed to distinguish between retirement, social security, death, and relocation to correctly parameterize the simulation. The vocabulary was refactored to eight fine-grained targets: `retirement`, `social_security`, `death`, `relocation`, `assumptions`, `marital_trust`, `spending`, `income`.
 
-LUM-AI-018 was updated first, as the normative source. Then the cascade began. LUM-AI-011 was updated. LUM-AI-012 was updated. LUM-AI-019 was updated. LUM-AI-025 was updated. But LUM-AI-014, which describes the action dispatcher and maintains its own enumeration of valid what_if targets, was not. LUM-AI-014 passes its own individual review — it is internally consistent, it lists exactly five what_if targets with correct descriptions, and nothing in it contradicts itself. The problem is that the five targets include `life_events`, which no longer exists. The dispatcher built to this spec will reject valid grammar outputs because the grammar sends `retirement` and the dispatcher only knows about `life_events`.
+LUM-AI-018 was updated first, as the normative source. Then the cascade began. LUM-AI-011 was updated. LUM-AI-012 was updated. LUM-AI-019 was updated. LUM-AI-025 was updated. But LUM-AI-014, which describes the action dispatcher and maintains its own enumeration of valid what_if targets, was not. LUM-AI-014 passes its own individual review. It is internally consistent, it lists exactly five what_if targets with correct descriptions, and nothing in it contradicts itself. The problem is that the five targets include `life_events`, which no longer exists. The dispatcher built to this spec will reject valid grammar outputs because the grammar sends `retirement` and the dispatcher only knows about `life_events`.
 
 To find this you need to compare the two lists. Read LUM-AI-014's §WHAT_IF Targets section verbatim, read LUM-AI-018's §What_If Change Targets section verbatim, compare item by item. If you read LUM-AI-014 first you do not notice the problem unless you already know what the correct list looks like. You need both texts simultaneously.
 
-The more complex version of the problem is conflicting assertions. Spec A describes a DTO with a field called `dateOfBirth`. Spec B describes a validator that validates a field called `birthDate` on the same DTO. Neither spec is internally inconsistent. The validator spec correctly describes how to validate a `birthDate` field — not null, valid ISO date, not in the future, minimum plausible age of 18. The DTO spec correctly describes the `dateOfBirth` field. Together they describe an impossible system — the validator looks for a field that does not exist, and the `dateOfBirth` field never gets validated. This cannot be found by reading one spec at a time.
+The more complex version of the problem is conflicting assertions. Spec A describes a DTO with a field called `dateOfBirth`. Spec B describes a validator that validates a field called `birthDate` on the same DTO. Neither spec is internally inconsistent. The validator spec correctly describes how to validate a `birthDate` field: not null, valid ISO date, not in the future, minimum plausible age of 18. The DTO spec correctly describes the `dateOfBirth` field. Together they describe an impossible system. The validator looks for a field that does not exist, and the `dateOfBirth` field never gets validated. This cannot be found by reading one spec at a time.
 
 `/spec-deep-review` is the systematic check for both of these problem types. It runs across the entire spec surface, looking for evidence that something which should be consistent is not.
 
@@ -35,9 +35,9 @@ Never assert PASS based on memory or prior knowledge. Show the grep evidence.
 
 The "grep before read" rule might look like an operational detail. It is actually the most important discipline in the skill. Claude has read thousands of specs across many sessions. It has a strong mental model of the system, accumulated from prior reads, prior conversations, and memory files. That creates a specific bias: Claude will tend to confirm what it already knows rather than check the current state of the files.
 
-Consider this. Deep review run 7 found and fixed `life_events` in LUM-AI-012, LUM-AI-019, and LUM-AI-025. The memory file records it: "7 specs fixed this session: LUM-AI-010/011/012/014/019/023/025 (all had `life_events` or `events`)." On run 8, when Phase 2 checks for `life_events`, memory says it was fixed. If Claude is allowed to assert PASS from memory, it will. And it will miss any file added or edited after run 7. Maybe a new integration spec describing the DST architecture includes an example what_if change with the `life_events` target — copied from an old example that was never updated. Memory does not capture that file. Only a grep does.
+Consider this. Deep review run 7 found and fixed `life_events` in LUM-AI-012, LUM-AI-019, and LUM-AI-025. The memory file records it: "7 specs fixed this session: LUM-AI-010/011/012/014/019/023/025 (all had `life_events` or `events`)." On run 8, when Phase 2 checks for `life_events`, memory says it was fixed. If Claude is allowed to assert PASS from memory, it will. And it will miss any file added or edited after run 7. Maybe a new integration spec describing the DST architecture includes an example what_if change with the `life_events` target, copied from an old example that was never updated. Memory does not capture that file. Only a grep does.
 
-The rule forces every PASS assertion to be grounded in evidence. If Claude checks whether `life_events` appears as a stale vocabulary term, it must show the grep output — either the matches found, or the empty result. "I searched and found nothing" is only acceptable if the grep actually ran and the empty output is shown:
+The rule forces every PASS assertion to be grounded in evidence. If Claude checks whether `life_events` appears as a stale vocabulary term, it must show the grep output, either the matches found or the empty result. "I searched and found nothing" is only acceptable if the grep actually ran and the empty output is shown:
 
 ```
 Grep: pattern="life_events", path="specs/modules/"
@@ -55,7 +55,7 @@ specs/modules/lumiscape-ai/LUM-AI-019-batch-testing.md:83:  The test matrix cove
 specs/modules/lumiscape-ai/LUM-AI-019-batch-testing.md:603:  Run three life_events scenarios per person configuration
 ```
 
-Then — and this is the step that requires the actual output — evaluate each match in context. The match at LUM-AI-012 line 396 is in a list of what_if targets in active spec prose. That is a conflict. The match at LUM-AI-019 line 83 is in the phrase "all eight life_events targets" — doubly wrong, because `life_events` is stale and "eight" is the wrong count for it (there are eight fine-grained replacements, not eight `life_events`). The match at LUM-AI-019 line 603 is in a test scenario description using the stale term. All three are conflicts.
+Then, and this is the step that requires the actual output, evaluate each match in context. The match at LUM-AI-012 line 396 is in a list of what_if targets in active spec prose. That is a conflict. The match at LUM-AI-019 line 83 is in the phrase "all eight life_events targets," which is doubly wrong because `life_events` is stale and "eight" is the wrong count for it (there are eight fine-grained replacements, not eight `life_events`). The match at LUM-AI-019 line 603 is in a test scenario description using the stale term. All three are conflicts.
 
 But suppose there was also a match at line 890 of LUM-AI-019:
 
@@ -64,7 +64,7 @@ specs/modules/lumiscape-ai/LUM-AI-019-batch-testing.md:890:  ## Changelog
 specs/modules/lumiscape-ai/LUM-AI-019-batch-testing.md:891:  v16: used life_events as grouped target; replaced by 8 fine-grained targets in v17
 ```
 
-That match is inside a `## Changelog` section. It is exempt — that section exists specifically to document what changed. You cannot make that call from memory. You need the actual line, with context, to know whether it falls inside a changelog section or in active spec prose.
+That match is inside a `## Changelog` section. It is exempt. That section exists specifically to document what changed. You cannot make that call from memory. You need the actual line, with context, to know whether it falls inside a changelog section or in active spec prose.
 
 The exemption evaluation requires seeing the line number, cross-referencing it with the section structure, and confirming the section is a dedicated historical record. The raw grep output is what makes this possible. Without it, you are guessing.
 
@@ -82,27 +82,27 @@ flowchart LR
 
 ## Inline Execution vs Subagent Delegation
 
-The skill explicitly prohibits delegating to a Task subagent. Every phase runs directly in the main conversation using Grep, Read, and other tools inline. This constraint is documented in the skill file as a Lumiscape-specific note — spawning a subagent triggers hook warnings about newlines in the prompt parameter — but the reasoning applies to any project using this workflow.
+The skill explicitly prohibits delegating to a Task subagent. Every phase runs directly in the main conversation using Grep, Read, and other tools inline. This constraint was discovered empirically: spawning a subagent triggered hook warnings about newlines in the prompt parameter. The reasoning applies to any project using this workflow.
 
 When you delegate to a subagent, you get back a summary. The subagent ran the greps, evaluated the matches, and concluded: "Phase 2 passed. One stale term found and exempted." You cannot verify this. You cannot see which grep command ran. You cannot see the matches that were evaluated. You cannot see the line numbers that would let you look at a match in context. You are trusting an assertion, not evaluating evidence.
 
 The deep review report is a narrative that interleaves grep evidence with analysis. It says: "Here is the grep command. Here is what it found. Here is why line 396 is a conflict and line 891 is exempt. Here is the root cause. Here are the other specs with the same problem." Each piece depends on the preceding piece. The conflict identification depends on seeing the grep output. The root cause explanation depends on reading the conflicting section in context. The cascade check depends on knowing the root cause before deciding what to grep for next.
 
-Delegate this to a subagent and the narrative collapses into a conclusion. The user cannot follow the reasoning. The user cannot spot an error in the evaluation. The user cannot verify that the cascade check was complete. A conclusion without an evidence chain is not a review — it is a claim. The hard rule against subagents is what keeps the evidence chain intact.
+Delegate this to a subagent and the narrative collapses into a conclusion. The user cannot follow the reasoning. The user cannot spot an error in the evaluation. The user cannot verify that the cascade check was complete. A conclusion without an evidence chain is not a review. It is a claim. The hard rule against subagents is what keeps the evidence chain intact.
 
 ## Structure: Project-Specific Phases Before General Phases
 
-The skill is divided into two clearly labeled sections, and the division is not cosmetic — it encodes a maintainability principle.
+The skill is divided into two clearly labeled sections, and the division is not cosmetic. It encodes a maintainability principle.
 
-The PROJECT-SPECIFIC REVIEW PHASES (Phases 1 through 5) contain all the Lumiscape-specific content: the grammar vocabulary tables, the spec IDs of dependent specs, the stale term inventory, the known-wrong number table, the enum inventories, the interface consistency pairs, the architectural invariants, the deleted construct table. These phases encode the current state of the project and its known problem areas.
+The PROJECT-SPECIFIC REVIEW PHASES (Phases 1 through 5) contain all the project-specific content: the grammar vocabulary tables, the spec IDs of dependent specs, the stale term inventory, the known-wrong number table, the enum inventories, the interface consistency pairs, the architectural invariants, the deleted construct table. These phases encode the current state of the project and its known problem areas.
 
-These phases accumulate over time. Every significant rename adds a row to the stale vocabulary table. Every deleted spec adds an entry to the deleted construct table. Every time a canonical inventory is identified — a new enum, a new vocabulary — it gets added to the Phase 1b table. Every time an architectural invariant is decided — RMD is a non-negotiable floor, grammar constraint is per-request not at startup — it gets added to Group D. The project-specific phases are a living record of every decision that created a cross-spec consistency obligation.
+These phases accumulate over time. Every significant rename adds a row to the stale vocabulary table. Every deleted spec adds an entry to the deleted construct table. Every time a canonical inventory is identified (a new enum, a new vocabulary) it gets added to the Phase 1b table. Every time an architectural invariant is decided (RMD is a non-negotiable floor, grammar constraint is per-request not at startup) it gets added to Group D. The project-specific phases are a living record of every decision that created a cross-spec consistency obligation.
 
 The GENERAL REVIEW PHASES (Phases 6, 7, and 8) contain checks that apply to any spec-driven project: architecture metadata completeness, deferral language scan, and cascade discipline. These never change. Phase 6 checks that every spec has a properly formed architecture metadata table. Phase 7 searches for deferral language. Phase 8 is a discipline rule about how to handle conflicts when found. None of these checks depend on what the project is building or how its vocabulary evolved.
 
-This separation matters for maintainability in two specific ways. When you make a change to the system — rename a class, delete a spec, add a new enum value — you update the project-specific phases and never touch the general phases. The maintenance surface is exactly as large as the set of project decisions, nothing more. And if you adapt this workflow for a different project, you replace everything in the PROJECT-SPECIFIC REVIEW PHASES section and keep Phases 6, 7, and 8 exactly as they are. The general phases are the invariant backbone.
+This separation matters for maintainability in two specific ways. When you make a change to the system (rename a class, delete a spec, add a new enum value) you update the project-specific phases and never touch the general phases. The maintenance surface is exactly as large as the set of project decisions, nothing more. And if you adapt this workflow for a different project, you replace everything in the PROJECT-SPECIFIC REVIEW PHASES section and keep Phases 6, 7, and 8 exactly as they are. The general phases are the invariant backbone.
 
-The PROJECT CONFIGURATION block at the top of the skill lists the spec root, the active modules, and any dissolved modules. It changes when modules are added or dissolved. Everything else — methodology, output format, hard rules — is invariant across projects.
+The PROJECT CONFIGURATION block at the top of the skill lists the spec root, the active modules, and any dissolved modules. It changes when modules are added or dissolved. Everything else (methodology, output format, hard rules) is invariant across projects.
 
 ```mermaid
 flowchart TD
@@ -210,7 +210,7 @@ Side by side, the drift is unmissable: the normative source has 8 targets; the d
 
 The instruction "quote both lists verbatim side by side before comparing" is not bureaucratic formality. It is the only reliable way to catch the case where you know both lists should match and your expectation smooths over the one item that differs. Skimming both lists in sequence, you might not notice that `death` appears in one and not the other. Reading them side by side, item by item, you cannot miss it.
 
-"Do not assert PASS for any dependent spec without quoting both lists first" is equally non-negotiable. A PASS for LUM-AI-014 §WHAT_IF Targets that is not supported by a side-by-side comparison is not a PASS — it is an unchecked assumption that the spec was updated when it should have been.
+"Do not assert PASS for any dependent spec without quoting both lists first" is equally non-negotiable. A PASS for LUM-AI-014 §WHAT_IF Targets that is not supported by a side-by-side comparison is not a PASS. It is an unchecked assumption that the spec was updated when it should have been.
 
 ## Phase 1b: Canonical Enumeration Duplication
 
@@ -218,7 +218,7 @@ Phase 1 catches drift after it happens. Phase 1b prevents it from happening by i
 
 The rule: no spec may maintain a local copy of a canonical inventory without a normative delegation statement pointing to the authoritative source. A local copy without a delegation statement will be edited in place, by someone who does not know to check the normative source first. The result is a local copy that diverges. That divergence is drift. And it will not be caught until the next deep review run.
 
-The delegation statement is what makes the coupling visible. Without it, two specs happen to contain the same values with no textual indication that they are supposed to match. With it, the spec says explicitly: "this section is not independently authoritative — its content is determined by LUM-AI-018 §X, and any modification must start there."
+The delegation statement is what makes the coupling visible. Without it, two specs happen to contain the same values with no textual indication that they are supposed to match. With it, the spec says explicitly: "this section is not independently authoritative; its content is determined by LUM-AI-018 §X, and any modification must start there."
 
 The two compliant patterns are:
 
@@ -226,7 +226,7 @@ The two compliant patterns are:
 
 **Delegation-with-copy (acceptable):** The section contains an explicit statement immediately before the list, like "The following replicates LUM-AI-018 §What_If Change Targets. Do not modify independently — update LUM-AI-018 first." The list then follows. This is compliant because the coupling is explicit. The delegation statement tells the editor that this list is derived, not authoritative, and must only be updated by updating the source first.
 
-Everything else is a violation, even if the values are currently correct. A correct copy today is a drift conflict tomorrow. The Phase 1b violation flag documents this: the problem is not that the values are wrong — they may be perfectly correct right now — but that the structure allows them to become wrong with no mechanism to detect it.
+Everything else is a violation, even if the values are currently correct. A correct copy today is a drift conflict tomorrow. The Phase 1b violation flag documents this: the problem is not that the values are wrong (they may be perfectly correct right now) but that the structure allows them to become wrong with no mechanism to detect it.
 
 The canonical inventories subject to this rule include: the four grammar actions, the eight summarize/compare targets, the eight what_if change targets, the twenty-nine parameter names, the thirty-two enumerated values across six vocabularies, and the major DTO enums (EventType, MetricId, FilingStatus, the StateCode valid set). Any spec that lists five or more values from one of these inventories in prose, without a delegation statement in the same section, is in violation.
 
@@ -271,11 +271,11 @@ For **each** stale term below, you MUST:
 ```
 ---
 
-Phase 2 is a grep-based scan for eighteen specific stale terms. Each one represents a named change to the system that needs to be reflected everywhere it appears. The table grows with the system — every significant rename, removal, or architectural refactoring adds a row.
+Phase 2 is a grep-based scan for eighteen specific stale terms. Each one represents a named change to the system that needs to be reflected everywhere it appears. The table grows with the system. Every significant rename, removal, or architectural refactoring adds a row.
 
 The current table covers:
 
-**`life_events`** — the old grouped what_if target. When the vocabulary was refactored from five grouped targets to eight fine-grained ones, `life_events` became stale everywhere it appeared. This is the most commonly found stale term across the spec surface. A grep across `specs/modules/` for `life_events` might return:
+**`life_events`**: the old grouped what_if target. When the vocabulary was refactored from five grouped targets to eight fine-grained ones, `life_events` became stale everywhere it appeared. This is the most commonly found stale term across the spec surface. A grep across `specs/modules/` for `life_events` might return:
 
 ```
 specs/modules/lumiscape-ai/LUM-AI-012-dst-architecture.md:396:  - what_if targets: retirement, social_security, death, life_events, relocation
@@ -285,17 +285,17 @@ specs/modules/lumiscape-ai/LUM-AI-019-batch-testing.md:867:  life_events combina
 specs/modules/lumiscape-ai/LUM-AI-025-action-executors.md:496:  WhatIfExecutor supports life_events target via LifeEventHandler
 ```
 
-Every one of those matches is a conflict unless it appears inside a `## Changelog` or `## Version History` section. The match at LUM-AI-019 line 83 is doubly wrong: "all eight life_events targets" treats `life_events` as a grouping containing eight items — mixing the old vocabulary with the new count.
+Every one of those matches is a conflict unless it appears inside a `## Changelog` or `## Version History` section. The match at LUM-AI-019 line 83 is doubly wrong: "all eight life_events targets" treats `life_events` as a grouping containing eight items, mixing the old vocabulary with the new count.
 
-**`LogprobChatClient`** — renamed to `LlmClient`. This was a complete replacement, not a rename. `LogprobChatClient` no longer exists. Any spec that references it describes a class that will not be found at compile time. The grep for `LogprobChatClient` should return zero results. Any result outside a changelog section is a hard conflict.
+**`LogprobChatClient`**: renamed to `LlmClient`. This was a complete replacement, not a rename. `LogprobChatClient` no longer exists. Any spec that references it describes a class that will not be found at compile time. The grep for `LogprobChatClient` should return zero results. Any result outside a changelog section is a hard conflict.
 
-**`ActionDispatcher` as grammar owner or loader** — this is the most nuanced stale term in the table, because `ActionDispatcher` still exists. The stale part is not the name but the claimed responsibility. Before the LlmClient refactoring, ActionDispatcher loaded the grammar file and stored it as a field (`grammarContent`). After the refactoring, LlmClient owns grammar loading. ActionDispatcher selects the mode and delegates — it does not touch grammar content directly.
+**`ActionDispatcher` as grammar owner or loader.** This is the most nuanced stale term in the table, because `ActionDispatcher` still exists. The stale part is not the name but the claimed responsibility. Before the LlmClient refactoring, ActionDispatcher loaded the grammar file and stored it as a field (`grammarContent`). After the refactoring, LlmClient owns grammar loading. ActionDispatcher selects the mode and delegates. It does not touch grammar content directly.
 
-The grep here is more complex than a simple name search. The skill instructs: search for "ActionDispatcher" near "grammar", "gbnf", "loads", "grammarContent". That proximity search surfaces the specific claim being checked — not that ActionDispatcher exists, but that it owns grammar. Any spec saying "ActionDispatcher loads grammar", "ActionDispatcher stores grammarContent", or drawing a Mermaid diagram with an arrow from ActionDispatcher directly to grammar content is describing the old architecture.
+The grep here is more complex than a simple name search. The skill instructs: search for "ActionDispatcher" near "grammar", "gbnf", "loads", "grammarContent". That proximity search surfaces the specific claim being checked, not that ActionDispatcher exists, but that it owns grammar. Any spec saying "ActionDispatcher loads grammar", "ActionDispatcher stores grammarContent", or drawing a Mermaid diagram with an arrow from ActionDispatcher directly to grammar content is describing the old architecture.
 
-The note that "Mermaid diagram arrows are NOT exempt" matters. A diagram line like `ActionDispatcher->>LLM: "with grammar attached"` is as much a claim as prose. It says ActionDispatcher is the component that attaches grammar. If that is no longer true, the diagram is stale and is a conflict the same as any prose claim. Diagrams are not decorative — they are spec assertions in visual form.
+The note that "Mermaid diagram arrows are NOT exempt" matters. A diagram line like `ActionDispatcher->>LLM: "with grammar attached"` is as much a claim as prose. It says ActionDispatcher is the component that attaches grammar. If that is no longer true, the diagram is stale and is a conflict the same as any prose claim. Diagrams are not decorative. They are spec assertions in visual form.
 
-**`GRAMMAR_SIMPLE` as a live mode** — this mode was removed. Only `GRAMMAR_FULL` and `TOOL_CALLING` are now active. Any spec that describes GRAMMAR_SIMPLE as a functioning mode (not as a removed feature in a changelog) describes a mode that does not exist.
+**`GRAMMAR_SIMPLE` as a live mode.** This mode was removed. Only `GRAMMAR_FULL` and `TOOL_CALLING` are now active. Any spec that describes GRAMMAR_SIMPLE as a functioning mode (not as a removed feature in a changelog) describes a mode that does not exist.
 
 **The exemption rule for changelog sections** is precise. The ONLY exempt locations are dedicated sections whose entire purpose is historical record: `## Changelog`, `## Version History`, or `## Superseded Specs`. An inline parenthetical like `(removed in v17)` is not exempt. A line in a references section that says "supersedes LUM-AI-008 (deleted)" is not exempt. A sentence in active spec prose that says "the `alias` action was removed in v17" is not exempt.
 
@@ -303,7 +303,7 @@ The reason for this strictness: inline annotations create a false sense of safet
 
 ## Phase 2b: Stale Numeric Values
 
-Stale vocabulary patterns catch renamed or removed identifiers. They do not catch stale numbers. You cannot grep for "wrong count" — you have to know what the wrong count is and grep for that specific value. Phase 2b maintains a table of specific known-wrong numbers that might still appear in specs.
+Stale vocabulary patterns catch renamed or removed identifiers. They do not catch stale numbers. You cannot grep for "wrong count." You have to know what the wrong count is and grep for that specific value. Phase 2b maintains a table of specific known-wrong numbers that might still appear in specs.
 
 The current table covers:
 
@@ -316,7 +316,7 @@ The current table covers:
 
 A grep for `5 actions` across all spec files finds any spec that still claims five actions in its prose. A grep for `31 param` finds any spec describing the pre-v17 parameter count. These greps run across ALL spec files, not just the ten known dependent specs.
 
-The reason for the "all spec files" scope: peripheral specs exist. LUM-AI-017 describes Apple Foundation Models integration. It has a section about grammar sync — synchronizing the grammar schema between the llama.cpp server and the AFM integration layer. That section includes count assertions: how many actions, how many parameters. LUM-AI-017 is not in the Phase 1 dependent spec list — it is not primarily a grammar spec and does not appear in LUM-AI-018's §Dependent Specs table. But it still contains count assertions that can drift. The global grep is the only way to catch it.
+The reason for the "all spec files" scope: peripheral specs exist. LUM-AI-017 describes Apple Foundation Models integration. It has a section about grammar sync, synchronizing the grammar schema between the llama.cpp server and the AFM integration layer. That section includes count assertions: how many actions, how many parameters. LUM-AI-017 is not in the Phase 1 dependent spec list. It is not primarily a grammar spec and does not appear in LUM-AI-018's §Dependent Specs table. But it still contains count assertions that can drift. The global grep is the only way to catch it.
 
 A count mismatch finding looks like this in the report:
 
@@ -352,9 +352,9 @@ public enum MetricId {
 }
 ```
 
-That is 15 values. The authoritative source says 15. Now run a global grep for `MetricId` and check every result against this count. A spec that says "the 14 MetricId values" or "all 16 MetricId metrics" is a count mismatch. A spec that references `MetricId.PORTFOLIO_REBALANCE` is referencing a value that does not exist in the enum — a conflict in Group A of Phase 4.
+That is 15 values. The authoritative source says 15. Now run a global grep for `MetricId` and check every result against this count. A spec that says "the 14 MetricId values" or "all 16 MetricId metrics" is a count mismatch. A spec that references `MetricId.PORTFOLIO_REBALANCE` is referencing a value that does not exist in the enum, which is a conflict in Group A of Phase 4.
 
-The global grep requirement for action and parameter counts is stated explicitly in the skill: "The instruction 'no spec claims 5 or more' is only enforceable through a global grep — not through checking the Phase 1 list alone." Peripheral specs exist that are not in the explicit dependent list but still contain count assertions. The global grep is the only reliable approach.
+The global grep requirement for action and parameter counts is stated explicitly in the skill: "The instruction 'no spec claims 5 or more' is only enforceable through a global grep, not through checking the Phase 1 list alone." Peripheral specs exist that are not in the explicit dependent list but still contain count assertions. The global grep is the only reliable approach.
 
 ## Phase 4: Cross-Spec Conflicting Assertions
 
@@ -370,7 +370,7 @@ The verification for EventType: read LUM-DTO-019, extract all 21 EventType value
 Grep: pattern="EventType", path="specs/modules/"
 ```
 
-Every result is evaluated. A spec that lists EventType values must list only values that appear in the authoritative 21-value set. If a spec references `EventType.PORTFOLIO_REBALANCE` and that value does not exist in LUM-DTO-019, that is a conflict — the spec describes behavior that references an enum value the enum does not contain.
+Every result is evaluated. A spec that lists EventType values must list only values that appear in the authoritative 21-value set. If a spec references `EventType.PORTFOLIO_REBALANCE` and that value does not exist in LUM-DTO-019, that is a conflict. The spec describes behavior that references an enum value the enum does not contain.
 
 A spec that says "EventType has 18 values" when it has 21 is a count mismatch. A spec that says "EventType includes IRMAA_HIT, SS_COLA_APPLIED, RMD_ISSUED, and ROTH_CONVERSION" must be checked: are all four of those values in the authoritative list? If IRMAA_HIT is not in the list, that is a conflict.
 
@@ -404,7 +404,7 @@ Group C is the most complex check in the skill. It verifies that pairs of specs 
 
 The verification for LUM-DTO-016 vs LUM-VAL-003: read LUM-DTO-016's Scenario fields, get the complete list of field names and their types. Read LUM-VAL-003's validated fields, get the complete list of what the validator checks. Then cross-reference both lists.
 
-Any Scenario field that is required (not optional) in LUM-DTO-016 but has no corresponding validation rule in LUM-VAL-003 is a gap — the field will not be validated, and invalid values will pass into the simulation. Any field that LUM-VAL-003 validates but that does not appear in LUM-DTO-016's field list is a conflict — the validator checks a field that does not exist, which means the validation will always silently succeed (the field is always null) and real validation never runs.
+Any Scenario field that is required (not optional) in LUM-DTO-016 but has no corresponding validation rule in LUM-VAL-003 is a gap. The field will not be validated, and invalid values will pass into the simulation. Any field that LUM-VAL-003 validates but that does not appear in LUM-DTO-016's field list is a conflict. The validator checks a field that does not exist, which means the validation will always silently succeed (the field is always null) and real validation never runs.
 
 The `dateOfBirth` vs `birthDate` example illustrates this exactly. If LUM-DTO-016 defines `birthDate: LocalDate` and LUM-VAL-003 validates `dateOfBirth`, the conflict is:
 
@@ -439,29 +439,29 @@ The consequence in production: the validator runs against the Scenario object, l
 ```
 ---
 
-Group D verifies that facts established by one spec are not contradicted by any other spec. These invariants are non-negotiable — they represent decisions that are either legally mandated (IRS law), mathematically required (the RMD floor cannot be waived), or deliberately hardcoded (the AtAge resolution algorithm).
+Group D verifies that facts established by one spec are not contradicted by any other spec. These invariants are non-negotiable. They represent decisions that are either legally mandated (IRS law), mathematically required (the RMD floor cannot be waived), or deliberately hardcoded (the AtAge resolution algorithm).
 
 For each invariant: read the source spec to confirm the fact is established there, then search all specs for any claim that contradicts it.
 
-**"RMD is a non-negotiable floor — trust rules must accommodate, not override."** The source is LUM-ENG-015. A search for content about trust rules and RMD interaction in all specs should not find any spec claiming that trust rules can suppress RMD withdrawals. A marital trust spec that says "distributions to the trust may delay RMD obligations in certain cases" is a conflict, because IRS law does not provide for this delay.
+**"RMD is a non-negotiable floor; trust rules must accommodate, not override."** The source is LUM-ENG-015. A search for content about trust rules and RMD interaction in all specs should not find any spec claiming that trust rules can suppress RMD withdrawals. A marital trust spec that says "distributions to the trust may delay RMD obligations in certain cases" is a conflict, because IRS law does not provide for this delay.
 
 **"Grammar constraint applied per-request in API payload, NOT at llama-server startup."** The source is LUM-AI-018. This was decided because grammar files can be large, and applying them at startup would prevent runtime switching between grammar modes. The constraint goes in each inference request. Any spec claiming grammar is loaded once at server startup and applied to all subsequent requests describes an architecture that contradicts this decision.
 
-**"AtAge resolves to exact `birthDate + N years`, not January 1st of the age year."** The source is LUM-ENG-003. A simulation using January 1st resolution produces incorrect results for any scenario where timing within the year matters — and retirement income timing matters significantly for tax purposes. Any spec claiming January 1st resolution describes an algorithm that produces systematically wrong results.
+**"AtAge resolves to exact `birthDate + N years`, not January 1st of the age year."** The source is LUM-ENG-003. A simulation using January 1st resolution produces incorrect results for any scenario where timing within the year matters, and retirement income timing matters significantly for tax purposes. Any spec claiming January 1st resolution describes an algorithm that produces systematically wrong results.
 
-**"`taxable_ss` is a transient metric — not persisted in final results."** The source is LUM-ENG-017 and LUM-DTO-020. `taxable_ss` is computed during the income tax calculation as an intermediate step, used to determine the taxable portion of Social Security income. It is not a final output metric. A spec that treats `taxable_ss` as a persisted output — storing it in results, exposing it via an API endpoint, showing it in the client UI — contradicts this decision.
+**"`taxable_ss` is a transient metric, not persisted in final results."** The source is LUM-ENG-017 and LUM-DTO-020. `taxable_ss` is computed during the income tax calculation as an intermediate step, used to determine the taxable portion of Social Security income. It is not a final output metric. A spec that treats `taxable_ss` as a persisted output (storing it in results, exposing it via an API endpoint, showing it in the client UI) contradicts this decision.
 
 ## Phase 5: Deleted Construct References
 
 Phase 5 searches for references to spec IDs, class names, and constructs that no longer exist. This is a two-part check: an explicit table of known-deleted constructs, and an exhaustive verification that every spec ID referenced anywhere in the spec surface resolves to an actual file.
 
 The explicit table covers:
-- `LUM-DTO-021` — MonteCarloResults DTO, deleted; superseded by LUM-DTO-039 (StochasticResults)
-- `LUM-AI-008` — InstructionQueryEngine, deleted
-- `LUM-AI-015` — DriveAction, deleted
-- `LUM-ENG-029` when referring to action executors — moved to LUM-AI-025
-- `MonteCarloResultsRepository` — renamed to `ExecutionResultsRepositories`
-- `MonteCarloResults` as a class/type name — renamed to `StochasticResults`
+- `LUM-DTO-021`: MonteCarloResults DTO, deleted; superseded by LUM-DTO-039 (StochasticResults)
+- `LUM-AI-008`: InstructionQueryEngine, deleted
+- `LUM-AI-015`: DriveAction, deleted
+- `LUM-ENG-029` when referring to action executors: moved to LUM-AI-025
+- `MonteCarloResultsRepository`: renamed to `ExecutionResultsRepositories`
+- `MonteCarloResults` as a class/type name: renamed to `StochasticResults`
 
 For each entry, the grep surfaces every reference. Each reference is evaluated: is it inside a dedicated changelog section? If not, it is a stale reference. The flag format:
 
@@ -471,17 +471,17 @@ Root cause: LUM-DTO-021 deleted; superseded by LUM-DTO-039 (StochasticResults)
 Fix: Replace LUM-DTO-021 with LUM-DTO-039; replace MonteCarloResults with StochasticResults
 ```
 
-The exhaustive check goes beyond the explicit table. It extracts every pattern matching `LUM-[A-Z]+-\d+` from every spec file and verifies each one resolves to an existing file in `specs/modules/`. This catches references that predate the explicit table — a spec ID deleted before the deep review workflow was established, referenced in one obscure spec that was never updated.
+The exhaustive check goes beyond the explicit table. It extracts every pattern matching `LUM-[A-Z]+-\d+` from every spec file and verifies each one resolves to an existing file in `specs/modules/`. This catches references that predate the explicit table, a spec ID deleted before the deep review workflow was established, referenced in one obscure spec that was never updated.
 
-The reference description consistency check adds another layer. When a spec lists a cross-reference in the form `LUM-ENG-015 — RMD Calculator`, the name in that reference must match the actual title of LUM-ENG-015. If LUM-ENG-015's scope expanded from "RMD Calculator" to "Retirement Withdrawal Calculator" when RetirementDistributionConfig was added, then any cross-reference still saying "RMD Calculator" is stale — not a deleted reference (the spec ID is valid), but a stale cross-reference describing an outdated understanding of what the spec covers.
+The reference description consistency check adds another layer. When a spec lists a cross-reference in the form `LUM-ENG-015 — RMD Calculator`, the name in that reference must match the actual title of LUM-ENG-015. If LUM-ENG-015's scope expanded from "RMD Calculator" to "Retirement Withdrawal Calculator" when RetirementDistributionConfig was added, then any cross-reference still saying "RMD Calculator" is stale. Not a deleted reference (the spec ID is valid), but a stale cross-reference describing an outdated understanding of what the spec covers.
 
 The exemption rule for Phase 5 matches Phase 2: the ONLY exempt location is inside a dedicated `## Changelog`, `## Version History`, or `## Superseded Specs` section. A bullet in a References or Dependencies section that says "Supersedes LUM-AI-008" is not exempt. An inline annotation saying `(LUM-AI-008 — DELETED)` is not exempt. A line in the Architecture Metadata table's dependencies field that lists `LUM-AI-008` is not exempt.
 
-The `— DELETED` label does not make the reference non-stale. It documents the staleness in place rather than removing it. Tools that scan for spec IDs — consistency checkers, documentation generators, coverage analyzers — will find this reference and may treat it as valid. The correct fix is removing the stale reference from active spec content entirely.
+The `— DELETED` label does not make the reference non-stale. It documents the staleness in place rather than removing it. Tools that scan for spec IDs (consistency checkers, documentation generators, coverage analyzers) will find this reference and may treat it as valid. The correct fix is removing the stale reference from active spec content entirely.
 
 ## Phase 6: Architecture Metadata Completeness
 
-Phase 6 is the first of the general phases — the ones that apply to any spec-driven project, not just Lumiscape. Every spec in this project must have an `## Architecture Metadata` table with required fields: `module`, `component_type`, `dependencies`, `inputs`, `outputs`, `architecture_role`, `data_flow_position`, `architecture_artifact`.
+Phase 6 is the first of the general phases, the ones that apply to any spec-driven project, not just this one. Every spec in this project must have an `## Architecture Metadata` table with required fields: `module`, `component_type`, `dependencies`, `inputs`, `outputs`, `architecture_role`, `data_flow_position`, `architecture_artifact`.
 
 The spot-check approach covers at least three specs per module. For each spec checked:
 - Verify the `## Architecture Metadata` section exists
@@ -498,11 +498,11 @@ Finding dissolved module references uses a simple grep:
 Grep: pattern="lumiscape-ref-data", path="specs/modules/"
 ```
 
-Any result in a `module:` field of an Architecture Metadata table is a conflict. Any result in the active modules list of a project overview spec is a conflict. Any result in a dependencies field referencing lumiscape-ref-data as a dependency is also a conflict — if you depend on a dissolved module, the dependency statement is stale and must be updated to reference whatever absorbed the dissolved module's components.
+Any result in a `module:` field of an Architecture Metadata table is a conflict. Any result in the active modules list of a project overview spec is a conflict. Any result in a dependencies field referencing lumiscape-ref-data as a dependency is also a conflict. If you depend on a dissolved module, the dependency statement is stale and must be updated to reference whatever absorbed the dissolved module's components.
 
-The `architecture_artifact: true` / `architecture_artifact: false` Mermaid diagram rule exists to keep architectural documentation consistent and discoverable. Architecture artifact specs — the ones that define the overall structure of a module — must contain visual representations of their architecture: a component diagram, a data flow diagram, and a sequence diagram. These three provide three different lenses on the same architecture. A spec claiming to be an architecture artifact without these diagrams is missing its primary documentation obligation.
+The `architecture_artifact: true` / `architecture_artifact: false` Mermaid diagram rule exists to keep architectural documentation consistent and discoverable. Architecture artifact specs, the ones that define the overall structure of a module, must contain visual representations of their architecture: a component diagram, a data flow diagram, and a sequence diagram. These three provide three different lenses on the same architecture. A spec claiming to be an architecture artifact without these diagrams is missing its primary documentation obligation.
 
-Conversely, a non-artifact spec that contains Mermaid diagrams is adding visual documentation that the metadata says it should not have. This creates inconsistency in how the spec surface is navigated — tooling that looks for architecture artifacts will find unexpected diagrams, and the metadata claim becomes false.
+Conversely, a non-artifact spec that contains Mermaid diagrams is adding visual documentation that the metadata says it should not have. This creates inconsistency in how the spec surface is navigated. Tooling that looks for architecture artifacts will find unexpected diagrams, and the metadata claim becomes false.
 
 ## Phase 7: Deferral Language Global Scan
 
@@ -518,15 +518,15 @@ Flag any match outside an `Out of Scope (Non-Goals)` section.
 ```
 ---
 
-Phase 7 complements the per-spec deferral check in `/spec-review` with a global search. Individual specs pass review when first written. Revision cycles introduce new content. A spec that was clean when reviewed in isolation may now contain deferral language added during a later revision — language that slipped through without a full review.
+Phase 7 complements the per-spec deferral check in `/spec-review` with a global search. Individual specs pass review when first written. Revision cycles introduce new content. A spec that was clean when reviewed in isolation may now contain deferral language added during a later revision, language that slipped through without a full review.
 
 The global scan searches for: `TODO`, `defer`, `deferred`, `stub`, `placeholder`, `for now`, `return null`, `not implemented`, `future work`, `v2`. Any match outside an `Out of Scope (Non-Goals)` section is a conflict.
 
 This is a global check rather than a per-spec check because the spec surface is constantly evolving. New content is added. Specs are revised. Individual spec review catches deferral language when the spec is first reviewed, but not when it is revised later. The global scan on every deep review run is the only way to catch deferral language introduced since the last individual review.
 
-The specific terms matter. `return null` is deferral language because it indicates an unimplemented method — a spec that describes a behavior and then shows the implementation as `return null` is not specifying the behavior, it is deferring it. `stub` and `placeholder` are explicit markers of incomplete work. `for now` is the phrase people write when they know they will change something later but have not decided what yet. `future work` belongs in the Out of Scope section, not in active spec prose. `v2` as a label is the most common form of inline scope deferral — "we'll add X in v2" is a deferral statement that belongs in `## Out of Scope (Non-Goals)` or not at all.
+The specific terms matter. `return null` is deferral language because it indicates an unimplemented method. A spec that describes a behavior and then shows the implementation as `return null` is not specifying the behavior, it is deferring it. `stub` and `placeholder` are explicit markers of incomplete work. `for now` is the phrase people write when they know they will change something later but have not decided what yet. `future work` belongs in the Out of Scope section, not in active spec prose. `v2` as a label is the most common form of inline scope deferral. "We'll add X in v2" is a deferral statement that belongs in `## Out of Scope (Non-Goals)` or not at all.
 
-The rule is not that these concepts cannot appear in the spec. They cannot appear outside the designated deferral section. If something is genuinely out of scope, it goes in `## Out of Scope (Non-Goals)` with a brief explanation — not inline in active spec prose as a promise to handle it later.
+The rule is not that these concepts cannot appear in the spec. They cannot appear outside the designated deferral section. If something is genuinely out of scope, it goes in `## Out of Scope (Non-Goals)` with a brief explanation, not inline in active spec prose as a promise to handle it later.
 
 ## Phase 8: Cascade Check
 
@@ -546,7 +546,7 @@ CONFLICT: what_if target `life_events` (should be 8 fine-grained targets)
 
 Phase 8 is a discipline rule, not a search phase. It governs how conflicts found in any preceding phase are handled before moving to the next check.
 
-The rule: whenever a conflict is found, search all modules for the same stale content before moving on. The same error typically appears in three to five specs simultaneously. The reason is structural — all of those specs share the same root cause: one canonical source was updated and the cascade to its dependents was incomplete.
+The rule: whenever a conflict is found, search all modules for the same stale content before moving on. The same error typically appears in three to five specs simultaneously. The reason is structural. All of those specs share the same root cause: one canonical source was updated and the cascade to its dependents was incomplete.
 
 Here is the cascade check in action. Phase 2 finds `life_events` in LUM-AI-012 at line 396. Before moving to the next stale term, the cascade check runs:
 
@@ -625,9 +625,9 @@ flowchart LR
 
 The most important hard rule: do NOT fix anything. Report only.
 
-Fixing conflicts during the review changes the review itself. If Claude starts fixing stale vocabulary in LUM-AI-012 halfway through Phase 2, it cannot show the complete conflict inventory. The user cannot see the full scope of the problem before deciding how to address it. The fix for line 396 of LUM-AI-012 might be straightforward. But if LUM-AI-019 and LUM-AI-025 have the same problem, and the root cause is an incomplete cascade from LUM-AI-018, the most efficient fix might be to update LUM-AI-018's §Dependent Specs table to add a note that LUM-AI-012 must be updated when this section changes — a structural fix that prevents the drift from recurring, rather than just patching the three current instances.
+Fixing conflicts during the review changes the review itself. If Claude starts fixing stale vocabulary in LUM-AI-012 halfway through Phase 2, it cannot show the complete conflict inventory. The user cannot see the full scope of the problem before deciding how to address it. The fix for line 396 of LUM-AI-012 might be straightforward. But if LUM-AI-019 and LUM-AI-025 have the same problem, and the root cause is an incomplete cascade from LUM-AI-018, the most efficient fix might be to update LUM-AI-018's §Dependent Specs table to add a note that LUM-AI-012 must be updated when this section changes, a structural fix that prevents the drift from recurring, rather than just patching the three current instances.
 
-The user cannot decide on that strategy if Claude has already fixed the three instances. The evidence chain is broken. The scope is hidden. The decision about fix strategy — patch the instances, fix the root cause, both — belongs to the user, with complete information in front of them. "Fix all conflicts?" at the end is not a rubber stamp. It is the moment where the user, having seen the complete conflict inventory with root causes grouped, decides whether to fix everything at once, fix incrementally, or address the structural issues first.
+The user cannot decide on that strategy if Claude has already fixed the three instances. The evidence chain is broken. The scope is hidden. The decision about fix strategy (patch the instances, fix the root cause, both) belongs to the user, with complete information in front of them. "Fix all conflicts?" at the end is not a rubber stamp. It is the moment where the user, having seen the complete conflict inventory with root causes grouped, decides whether to fix everything at once, fix incrementally, or address the structural issues first.
 
 The other hard rules:
 - Do NOT suppress minor conflicts. Every mismatch is reported. "Minor" is not a category.
@@ -636,7 +636,7 @@ The other hard rules:
 - Group conflicts by root cause, not by file.
 - PASS requires evidence. Never assert PASS without showing the raw data.
 
-The "sum-expression tolerance" rule is a deliberate exception to strict literal matching. A vocabulary arithmetic expression like `4+4+4+5+12+3=32` is PASS if the total is correct and each operand matches a valid vocabulary size, even if the operand order differs from the canonical source. Different specs might list the six vocabulary sizes in different orders — actions first, then targets, then parameters — and any order is equivalent. The check is on the total and the individual values, not their sequence.
+The "sum-expression tolerance" rule is a deliberate exception to strict literal matching. A vocabulary arithmetic expression like `4+4+4+5+12+3=32` is PASS if the total is correct and each operand matches a valid vocabulary size, even if the operand order differs from the canonical source. Different specs might list the six vocabulary sizes in different orders (actions first, then targets, then parameters) and any order is equivalent. The check is on the total and the individual values, not their sequence.
 
 ## The Report Format
 
@@ -671,7 +671,7 @@ Conflicts: N
 
 A complete deep review report has three sections: PASS (grouped by phase), CONFLICTS FOUND (grouped by root cause), and SUMMARY.
 
-The PASS section lists each check that passed with its supporting evidence. It is not a bare assertion list — each item includes the evidence that supports the PASS:
+The PASS section lists each check that passed with its supporting evidence. It is not a bare assertion list. Each item includes the evidence that supports the PASS:
 
 ```
 ## Deep Review Report
@@ -751,7 +751,7 @@ The Phase 1 through Phase 8 structure is the executable specification of cross-s
 
 The report format is the output specification: given a complete run of all phases, produce a structured document with three sections, PASS entries backed by evidence, CONFLICT entries backed by line numbers and exact text, and a SUMMARY with counts. The document is the deliverable. The phases are the process that produces it.
 
-This is what it means to write a skill as a machine-executable specification rather than a narrative description. The machine — in this case, the AI assistant — does not need to understand why the rule exists. It needs to execute the rule exactly. The understanding of why lives in the chapter you just read.
+This is what it means to write a skill as a machine-executable specification rather than a narrative description. The machine (in this case, the AI assistant) does not need to understand why the rule exists. It needs to execute the rule exactly. The understanding of why lives in the chapter you just read.
 
 ## What Comes Next
 

@@ -2,15 +2,15 @@
 
 ## The Problem With Engineer-Written Specs
 
-Engineers are good at thinking through systems and bad at writing contracts. Not a criticism — it follows directly from how engineers think. When an engineer writes a spec, the mental model already exists in their head. They write down what's interesting or novel, assume the reader shares their context for the obvious parts, and leave edge cases as implementation details to be worked out later. The result accurately describes what the author had in mind. It does not constrain what the implementer will build.
+Engineers are good at thinking through systems and bad at writing contracts. Not a criticism. It follows directly from how engineers think. When an engineer writes a spec, the mental model already exists in their head. They write down what's interesting or novel, assume the reader shares their context for the obvious parts, and leave edge cases as implementation details to be worked out later. The result accurately describes what the author had in mind. It does not constrain what the implementer will build.
 
-That gap between intent and constraint is where bugs are born. Not the obvious bugs — those get caught in testing. The specification bugs: behaviors that work exactly as implemented but not as intended, because the spec never made the distinction clear.
+That gap between intent and constraint is where bugs are born. Not the obvious bugs, those get caught in testing. The specification bugs: behaviors that work exactly as implemented but not as intended, because the spec never made the distinction clear.
 
 Here's a concrete before/after. How an engineer typically writes a requirement:
 
 > The withdrawal calculator handles account withdrawals, taking into account the account type, balance, and any applicable penalties or restrictions. Edge cases for trust accounts and retirement accounts are handled appropriately. Invalid inputs are rejected with an appropriate error.
 
-Every engineer who reads this nods. Of course it handles account type and balance. Of course invalid inputs are rejected. This is not a spec — it's a description of what the engineer already knows is true about the system. It answers none of the questions that matter when you sit down to write code:
+Every engineer who reads this nods. Of course it handles account type and balance. Of course invalid inputs are rejected. This is not a spec. It's a description of what the engineer already knows is true about the system. It answers none of the questions that matter when you sit down to write code:
 
 - What happens if the requested withdrawal amount exceeds the available balance? Exception? Return value? Which exception? What message?
 - What is "an appropriate error" for an invalid account type? A ValidationException? A null return? An IllegalArgumentException?
@@ -33,7 +33,7 @@ LUM-ENG-WD-004: Given a trust account withdrawal, apply trust distribution rules
 
 Four behaviors the narrative conflated into one paragraph. Each has a behavior ID. Each is testable: pass `requestedAmount > account.balance`, assert `InsufficientFundsException` is thrown with the right field populated. Pass `age = 58`, verify the 10% penalty is applied. Pass `accountType = null`, assert the specific error code. None of those tests are writable from the narrative paragraph, because the narrative paragraph doesn't specify any of that.
 
-`/spec-review` is designed to close that gap. Its job is to transform a narrative spec — which describes what a system should do — into a behavioral contract — which specifies what a system must do, what it must not do, what it must reject, and what is explicitly out of scope. Those are different documents. The review process is how you get from one to the other.
+`/spec-review` is designed to close that gap. Its job is to transform a narrative spec, which describes what a system should do, into a behavioral contract, which specifies what a system must do, what it must not do, what it must reject, and what is explicitly out of scope. Those are different documents. The review process is how you get from one to the other.
 
 ## The Role Definition: CONTRACT MODE vs HELPER MODE
 
@@ -76,25 +76,15 @@ Contract mode means:
 
 The skill opens with a role definition that looks redundant until you understand what problem it's solving.
 
-By default, Claude behaves like a helpful assistant. A helpful assistant, when it encounters a spec gap, fills the gap with a reasonable assumption. When asked to generate acceptance tests for an ambiguous behavior, it interprets the ambiguity charitably and generates tests for the most sensible reading. When asked to extract behaviors from a narrative that mixes behavioral requirements with design commentary, it sorts things out as best it can. In normal usage, that's exactly what you want.
+By default, Claude behaves like a helpful assistant. When it encounters a spec gap, it fills the gap with a reasonable assumption. When asked to generate tests for an ambiguous behavior, it interprets the ambiguity charitably. In normal usage, that's exactly what you want. It's exactly wrong for spec review. The role definition overrides those defaults completely.
 
-It's exactly the wrong behavior for spec review. The role definition overrides these defaults completely:
+The "not" list in the role definition matters more than the "is" list. Two prohibitions carry the most weight.
 
-**Claude IS:** a contract spec author, a requirements extractor, a test generator, an implementation engine operating under constraints, an architecture extractor from specs only.
+**Not a "reasonable engineer" making judgment calls.** The spec describes a validation error but doesn't say whether it's a hard error (throws an exception, aborts the operation) or a soft error (collects into a result object, allows the operation to continue). A reasonable engineer looks at the context and decides "this feels like a hard error." CONTRACT MODE doesn't allow this. The choice affects every caller of this component. It must be explicit. Claude stops and asks: this validation rule does not specify whether the failure mode is a thrown exception or a collected validation result. The distinction affects the caller contract. Please clarify.
 
-**Claude is NOT:** a product manager, a creative assistant, a "reasonable engineer" making judgment calls, an authority on correctness.
+**Not an authority on correctness.** Claude has extensive knowledge of software engineering. In CONTRACT MODE, that knowledge is irrelevant. If the spec says to compute RMD using the 2000 IRS tables rather than the 2022 tables, Claude does not correct it. It implements the 2000 tables and flags the discrepancy as a question. Correctness authority belongs to the spec, the tests, the compiler, and the runtime.
 
-The "not" list matters as much as the "is" list. Let's walk through each prohibition.
-
-**Not a product manager.** Suppose the spec says: "Handle edge cases for retirement age." A product manager would define those — early retirement at 55, standard at 65, late at 70. Claude in CONTRACT MODE does not. It stops: the spec mentions retirement age edge cases but does not define them. The following are not specified: minimum retirement age, maximum retirement age, behavior when the input falls below the minimum, behavior when it exceeds the maximum. Please provide these explicitly. The friction is intentional. The engineer who wrote "handle edge cases" had something specific in mind, and that specific thing needs to be in the spec, not inferred during review.
-
-**Not a "reasonable engineer" making judgment calls.** Suppose the spec describes a validation error but doesn't say whether it's a hard error (throws an exception, aborts the operation) or a soft error (collects into a result object, allows the operation to continue). A reasonable engineer might look at the context and decide "this feels like a hard error." CONTRACT MODE doesn't allow this. The choice affects every caller of this component. It must be explicit. Claude stops: this validation rule does not specify whether the failure mode is a thrown exception or a collected validation result. The distinction affects the caller contract. Please clarify.
-
-**Not an authority on correctness.** This one is subtle. Claude has extensive knowledge of software engineering — standard patterns for withdrawal calculators, RMD computation, tax bracket logic. In CONTRACT MODE, that knowledge is irrelevant. The spec defines correct behavior. If the spec says to compute RMD using the 2000 IRS tables rather than the 2022 tables, Claude does not correct it — it implements the 2000 tables and flags the discrepancy as a question. Correctness authority belongs to the spec, the tests, the compiler, and the runtime.
-
-**Contract spec author.** Every behavior gets a testable statement with a behavior ID, not a narrative description. Design choices — how the system accomplishes something — do not appear in Core Behaviors. Only behavioral requirements — what the system must do — appear there.
-
-**Architecture extractor from specs only.** Diagrams are derived from the spec's dependency list and architecture metadata. Claude's general knowledge of "what makes sense" for a retirement calculation system is not a source. If the spec doesn't list a dependency, it doesn't appear in the diagram. If the spec's data flow is incomplete, diagram generation stops and asks for clarification.
+The remaining prohibitions follow the same pattern. "Not a product manager" means Claude won't define retirement age edge cases that the spec mentions but doesn't specify; it stops and asks. "Not a creative assistant" means it won't invent scope or architecture. On the positive side: contract spec author (every behavior gets an ID and a testable statement), requirements extractor, architecture extractor from specs only (diagrams show what the dependency list declares, nothing more).
 
 The operating principle at the end of the skill captures this in three lines:
 
@@ -123,7 +113,7 @@ graph LR
     HELPER -- "spec-review\ninstructions override" --> CONTRACT
 ```
 
-The override is total. For the duration of a spec review session, every default helpful behavior is suppressed in favor of the contractual behavior. The skill instructions are not guidelines — they are operating constraints that Claude follows exactly.
+The override is total. For the duration of a spec review session, every default helpful behavior is suppressed in favor of the contractual behavior. The skill instructions are not guidelines. They are operating constraints that Claude follows exactly.
 
 ## The No-Deferrals Policy: Every Prohibited Term Has a Failure Mode
 
@@ -153,11 +143,11 @@ The no-deferrals policy prohibits a specific set of terms from specs: `TODO`, `d
 
 **`for now`** means the behavior is temporary. "For now, stateCode is case-insensitive" will cause a production incident. The system goes live accepting lowercase state codes. Six months later, someone changes the validation because case-sensitivity was always intended. Every client sending lowercase codes breaks. The word "now" in a spec refers to the implementation moment, which has no meaning once the system is in production. Behavior is either specified or it is not.
 
-**`v2`** and **`future version`** create an implicit second scope that never gets specified. "Trust account withdrawal logic will be implemented in v2" sounds like a plan. What it actually is: an acknowledgment that the behavior is not specified, combined with a false assurance it will be handled later. v2 planning happens when v2 starts, and by then the scope, the engineer, and the context have all changed. The correct approach: if trust account withdrawal logic is not being implemented now, it goes in `OUT OF SCOPE (NON-GOALS)` with a clear statement of why. Not deferred — excluded.
+**`v2`** and **`future version`** create an implicit second scope that never gets specified. "Trust account withdrawal logic will be implemented in v2" sounds like a plan. What it actually is: an acknowledgment that the behavior is not specified, combined with a false assurance it will be handled later. v2 planning happens when v2 starts, and by then the scope, the engineer, and the context have all changed. The correct approach: if trust account withdrawal logic is not being implemented now, it goes in `OUT OF SCOPE (NON-GOALS)` with a clear statement of why. Not deferred. Excluded.
 
 **`stub`** and **`placeholder`** are the code analogs of TODO. A stub method compiles. Tests that call it pass if the stub returns a neutral value. The behavior is absent, but the structural presence of the method makes it invisible. "The RothConversionCalculator has a placeholder for state tax impact" means there's a method called something like `computeStateTaxImpact()` that returns zero or null. Every test for the Roth calculator passes. The state tax impact is silently wrong for every user in a state with income tax. When someone discovers this, the investigation will find a spec that said "placeholder" and a test suite that never tested the actual behavior.
 
-**`return null` in a public module boundary method** is the runtime version of a deferral. A method that returns `null` when it can't find a result shifts the problem to its caller. If the caller doesn't check for null — and in a codebase with many callers, some won't — the null propagates until something throws a NullPointerException somewhere else entirely. The stack trace points to the crash site, not the source. The correct behavior: at a module boundary, return `Optional.empty()`. The caller is forced to handle the absent case at the point of receipt, not downstream.
+**`return null` in a public module boundary method** is the runtime version of a deferral. A method that returns `null` when it can't find a result shifts the problem to its caller. If the caller doesn't check for null, and in a codebase with many callers some won't, the null propagates until something throws a NullPointerException somewhere else entirely. The stack trace points to the crash site, not the source. The correct behavior: at a module boundary, return `Optional.empty()`. The caller is forced to handle the absent case at the point of receipt, not downstream.
 
 Here's what deferral language in a spec looks like, and the review output it produces:
 
@@ -272,7 +262,7 @@ public record PersonConfig(
 ) {}
 ```
 
-The failure modes are concrete. Jackson doesn't serialize `Optional` cleanly by default — you need a special module, and even with it, the serialized form is unexpected (`{"middleName":{"present":true,"value":"James"}}` instead of `{"middleName":"James"}`). Beyond serialization, it wraps a simple absent value in an object wrapper. Every piece of code that reads the middle name must call `.orElse(null)` or `.orElse("")` or similar. The correct pattern:
+The failure modes are concrete. Jackson doesn't serialize `Optional` cleanly by default. You need a special module, and even with it, the serialized form is unexpected (`{"middleName":{"present":true,"value":"James"}}` instead of `{"middleName":"James"}`). Beyond serialization, it wraps a simple absent value in an object wrapper. Every piece of code that reads the middle name must call `.orElse(null)` or `.orElse("")` or similar. The correct pattern:
 
 ```java
 // Correct
@@ -346,7 +336,7 @@ Act (2023).
 
 Three testable behaviors. CB-001 can be tested with a specific balance and age, asserting the exact computed value against the IRS table divisor. CB-002 with a specific age pair, asserting the different divisor. CB-003 with age 72, asserting the exception type. The narrative described the same behavior. Only the structured Core Behaviors produce tests.
 
-The practical discipline: if you find yourself explaining a behavior in narrative text, stop and ask whether you've also captured it in Core Behaviors with a behavior ID. If not, the spec is incomplete. The narrative is not normative — it explains and provides context. It does not constrain.
+The practical discipline: if you find yourself explaining a behavior in narrative text, stop and ask whether you've also captured it in Core Behaviors with a behavior ID. If not, the spec is incomplete. The narrative is not normative. It explains and provides context. It does not constrain.
 
 Every behavior must land in one of exactly three places:
 
@@ -389,9 +379,9 @@ Five rules for authoring core behaviors. Each one addresses a specific way that 
 
 **Rule 1: Identify REQUIRED behaviors, not design choices.** A behavior is what the system does from the caller's perspective. A design choice is how it does it internally. "The calculator uses a binary search to find the applicable tax bracket" is a design choice. "Given income I, return the tax bracket [lower, upper] where lower <= I < upper" is a behavior. Core Behaviors contain only behaviors.
 
-This distinction matters because design choices change without breaking the contract. If the calculator switches from binary search to linear scan, the behavior is unchanged — same input, same output. Put the design choice in Core Behaviors and any implementation change becomes a "spec change," creating unnecessary friction. Keep them separate.
+This distinction matters because design choices change without breaking the contract. If the calculator switches from binary search to linear scan, the behavior is unchanged: same input, same output. Put the design choice in Core Behaviors and any implementation change becomes a "spec change," creating unnecessary friction. Keep them separate.
 
-**Rule 2: Assign requirement IDs.** The format is `[SPEC-ID]-CB-[NNN]` — for example, `LUM-ENG-015-CB-001`. These IDs are stable references. They appear in the traceability matrix, in test class names, in code comments linking implementation to requirement. When you see `LUM-ENG-015-CB-007` in a test failure, you know immediately which spec to consult and which behavior is failing.
+**Rule 2: Assign requirement IDs.** The format is `[SPEC-ID]-CB-[NNN]`, for example `LUM-ENG-015-CB-001`. These IDs are stable references. They appear in the traceability matrix, in test class names, in code comments linking implementation to requirement. When you see `LUM-ENG-015-CB-007` in a test failure, you know immediately which spec to consult and which behavior is failing.
 
 Behavior IDs also prevent accidental requirement removal. A narrative can be revised without anyone noticing that a behavior was dropped. A Core Behaviors section with IDs creates an audit trail: if CB-007 disappears from revision 3 to revision 4, that's a detectable change that requires justification, not an invisible paragraph edit.
 
@@ -407,7 +397,7 @@ Testable. Pass "XX" as stateCode, assert ValidationException is thrown, assert g
 
 **Rule 4: Avoid interpretation.** If the spec says "recent transactions," Claude does not decide that "recent" means 90 days. It flags the ambiguity: the term "recent" in this context is undefined. Please specify the time window (e.g., 90 days, 12 months, since account open date). An interpretation made by the reviewer is one that bypasses the engineer who designed the system. Even if the interpretation is correct, the process is wrong: the spec should contain the decision, not the reviewer's guess.
 
-**Rule 5: Flag ambiguity instead of resolving it.** The cost structure is asymmetric. Flagging an ambiguity at spec review costs one conversation turn: the reviewer flags it, the engineer clarifies, the behavior is written correctly. Resolving an ambiguity by assumption costs: one conversation turn where the engineer doesn't notice the assumption, then the implementation effort for the wrong behavior, the testing effort for the wrong behavior, the bug report when production reveals it, the investigation to trace the bug to the wrong assumption, the spec revision, the code change, and the regression test. Flagging is not slower — it's massively faster at the system level.
+**Rule 5: Flag ambiguity instead of resolving it.** The cost structure is asymmetric. Flagging an ambiguity at spec review costs one conversation turn: the reviewer flags it, the engineer clarifies, the behavior is written correctly. Resolving an ambiguity by assumption costs: one conversation turn where the engineer doesn't notice the assumption, then the implementation effort for the wrong behavior, the testing effort for the wrong behavior, the bug report when production reveals it, the investigation to trace the bug to the wrong assumption, the spec revision, the code change, and the regression test. Flagging is not slower. It's massively faster at the system level.
 
 ## Validation Rules: Explicit, Enforceable, With Error Conditions
 
@@ -435,7 +425,7 @@ Implicit: "The state code must be valid."
 
 Explicit: "stateCode must be one of the 51 values in the valid-state-code set (50 US states plus DC, uppercase two-letter codes). Any other value, including lowercase codes (e.g., 'ca' instead of 'CA'), empty string, or null, throws ValidationException with error code INVALID_STATE_CODE."
 
-The explicit version specifies that lowercase codes fail. Not obvious — some systems normalize case before validation. The explicit rule prevents that policy decision from being made silently at implementation time.
+The explicit version specifies that lowercase codes fail. Not obvious. Some systems normalize case before validation. The explicit rule prevents that policy decision from being made silently at implementation time.
 
 **Enforceable** means a test can be written that passes a violating input and verifies the rejection. If a validation rule can't be expressed as a failing test, it's not enforceable. "The retirement age should be reasonable" is not enforceable. "retirementAge must be in the range [55, 75] inclusive; values outside this range throw ValidationException with error code INVALID_RETIREMENT_AGE" is enforceable. Write a parameterized test with inputs 54, 55, 75, 76 and verify the first and last throw the exception while the middle two don't.
 
@@ -454,7 +444,7 @@ VAL-004: retirementAge is null → throw ValidationException(MISSING_RETIREMENT_
 
 Four rules. Four testable cases. No ambiguity about what happens at any input value.
 
-The mandate that validation must not be implied is equally important. "The calculator assumes valid inputs" is not a validation rule — it's an admission that no validation is specified. When the calculator receives an invalid input, the behavior is undefined. It might throw a NullPointerException. It might compute a nonsense result. It might silently corrupt simulation output. "Assumes valid inputs" is a blank check written against the system's correctness.
+The mandate that validation must not be implied is equally important. "The calculator assumes valid inputs" is not a validation rule. It's an admission that no validation is specified. When the calculator receives an invalid input, the behavior is undefined. It might throw a NullPointerException. It might compute a nonsense result. It might silently corrupt simulation output. "Assumes valid inputs" is a blank check written against the system's correctness.
 
 ## Acceptance Test Generation: Four Test Types for Every Behavior
 
@@ -493,7 +483,7 @@ The skill requires four categories of test for every behavior.
 
 **Boundary cases** test exactly at the thresholds. If the RMD age threshold is 73, the boundary cases are: age 72 (no RMD), age 73 (first eligible year), age 74 (normal operation beyond threshold). If a collection can be empty, the boundary case tests an empty collection. Boundary cases are where off-by-one errors hide. A system that computes RMD starting at age 74 instead of 73 passes all positive tests except the one at exactly 73.
 
-**Edge cases** test extreme values, unusual combinations, and conditions that are theoretically possible but rarely encountered: balance of zero, maximum representable age, the first day of the year, the last day of the year, all accounts empty, all accounts maxed. Edge cases expose the behaviors that engineers forget to handle because the conditions "never happen in practice" — until they do.
+**Edge cases** test extreme values, unusual combinations, and conditions that are theoretically possible but rarely encountered: balance of zero, maximum representable age, the first day of the year, the last day of the year, all accounts empty, all accounts maxed. Edge cases expose the behaviors that engineers forget to handle because the conditions "never happen in practice." Until they do.
 
 A complete test specification for a single behavior, showing all four types:
 
@@ -521,7 +511,7 @@ Edge cases:
   - age=121 → throw InvalidAgeException (exceeds IRS table maximum of 120)
 ```
 
-Every one of these test cases is derived from the CB-001 behavior statement. None of them require the test author to understand the RMD system in general — they require only that the behavior statement be precise and complete. If the behavior statement is imprecise, the test cases will be imprecise.
+Every one of these test cases is derived from the CB-001 behavior statement. None of them require the test author to understand the RMD system in general. They require only that the behavior statement be precise and complete. If the behavior statement is imprecise, the test cases will be imprecise.
 
 The rules about expected outputs deserve attention. Expected outputs must be deterministic, testable, and reproducible. This excludes fuzzy assertions like "the result should be approximately correct" or "the output should be reasonable." Deterministic means the same input always produces the same output. Testable means the assertion is either true or false. Reproducible means the test produces the same result on every run, in every environment.
 
@@ -550,7 +540,7 @@ If missing → STOP spec review.
 ```
 ---
 
-Every spec must include an `## Architecture Metadata` table immediately after the spec header. Not optional, not cosmetic — if it's missing, spec review stops. Here's what a complete metadata table looks like for a retirement distribution calculator:
+Every spec must include an `## Architecture Metadata` table immediately after the spec header. Not optional, not cosmetic. If it's missing, spec review stops. Here's what a complete metadata table looks like for a retirement distribution calculator:
 
 ```
 | Field                 | Value                                                        |
@@ -569,19 +559,19 @@ Every spec must include an `## Architecture Metadata` table immediately after th
 
 Each field has a specific purpose that goes beyond documentation.
 
-**`module`** establishes which Maven module owns this component. Not a namespace — an enforcement mechanism. During implementation, the build system verifies that classes live in the modules their specs declare. A calculator spec that says `module: lumiscape-engine` but whose class ends up in `lumiscape-service` is a violation that spec-execution will flag.
+**`module`** establishes which Maven module owns this component. Not a namespace. An enforcement mechanism. During implementation, the build system verifies that classes live in the modules their specs declare. A calculator spec that says `module: lumiscape-engine` but whose class ends up in `lumiscape-service` is a violation that spec-execution will flag.
 
-**`component_type`** establishes a taxonomy across the entire system. Valid values: `dto`, `calculator`, `accumulator`, `validation`, `rules`, `config`, `repository`, `runner`, `engine`, `service`, `pipeline`, `router`, `narrator`. Each type carries an expected behavioral contract. A `calculator` is a pure function: same inputs, same outputs, no side effects. An `accumulator` collects and aggregates values over time. A `repository` persists and retrieves. A `runner` orchestrates a complex process. When a component's declared type doesn't match its actual behavior — when a "calculator" writes to a database, or a "repository" contains tax bracket logic — that's a spec smell. The taxonomy makes these mismatches visible.
+**`component_type`** establishes a taxonomy across the entire system. Valid values: `dto`, `calculator`, `accumulator`, `validation`, `rules`, `config`, `repository`, `runner`, `engine`, `service`, `pipeline`, `router`, `narrator`. Each type carries an expected behavioral contract. A `calculator` is a pure function: same inputs, same outputs, no side effects. An `accumulator` collects and aggregates values over time. A `repository` persists and retrieves. A `runner` orchestrates a complex process. When a component's declared type doesn't match its actual behavior, that's a spec smell. A "calculator" that writes to a database, a "repository" that contains tax bracket logic. The taxonomy makes these mismatches visible.
 
-**`dependencies`** lists spec IDs, not class names. Class names change during implementation: `RetirementDistributionCalculatorImpl` might be refactored to `DistributionEngine` without any change to the contract. Spec IDs are stable — LUM-ENG-015 refers to the same behavioral contract regardless of what the implementing class is called. When dependencies are expressed as spec IDs, the dependency graph stays stable through implementation refactors.
+**`dependencies`** lists spec IDs, not class names. Class names change during implementation: `RetirementDistributionCalculatorImpl` might be refactored to `DistributionEngine` without any change to the contract. Spec IDs are stable. LUM-ENG-015 refers to the same behavioral contract regardless of what the implementing class is called. When dependencies are expressed as spec IDs, the dependency graph stays stable through implementation refactors.
 
 **`inputs` and `outputs`** are type names, not descriptions. "Receives a retirement distribution configuration and accounts" is a description. `RetirementDistributionConfig, Account[]` are types. The distinction matters because type names are verifiable: during implementation, the compiler will tell you whether the actual method signatures match the declared input/output types.
 
 **`architecture_role`** is a single sentence describing the component's responsibility. It must be specific enough to distinguish this component from others with similar names. "Computes retirement distributions" is too vague. "Computes RMD, Roth conversion amounts, and withdrawal ordering for retirement accounts in a given simulation year" distinguishes this calculator from a Roth conversion optimizer or a withdrawal sequence advisor.
 
-**`data_flow_position`** says where in the pipeline this component sits. "Called by YearProcessor after income calculation, before tax calculation" is a pipeline position. This makes sequencing constraints explicit. If two calculators are both called by YearProcessor but one requires the output of the other, this field captures that constraint. Without it, the ordering dependency is implicit — visible only to the engineer who designed the system.
+**`data_flow_position`** says where in the pipeline this component sits. "Called by YearProcessor after income calculation, before tax calculation" is a pipeline position. This makes sequencing constraints explicit. If two calculators are both called by YearProcessor but one requires the output of the other, this field captures that constraint. Without it, the ordering dependency is implicit, visible only to the engineer who designed the system.
 
-**`architecture_artifact`** is a boolean that controls diagram generation. This is the most frequently misunderstood field because its semantics are about architectural significance, not complexity. A very complex calculator might have `architecture_artifact: false` because its architecture is trivial: inputs go in, outputs come out. The inputs and outputs are fully described in the table. No diagram adds information. A simple router might have `architecture_artifact: true` because its structural relationships define the entire data flow of the system — draw it and you understand how data moves; skip it and the system's structure is opaque.
+**`architecture_artifact`** is a boolean that controls diagram generation. This is the most frequently misunderstood field because its semantics are about architectural significance, not complexity. A very complex calculator might have `architecture_artifact: false` because its architecture is trivial: inputs go in, outputs come out. The inputs and outputs are fully described in the table. No diagram adds information. A simple router might have `architecture_artifact: true` because its structural relationships define the entire data flow of the system. Draw it and you understand how data moves. Skip it and the system's structure is opaque.
 
 The decision:
 
@@ -693,9 +683,9 @@ sequenceDiagram
     RetirementDistributionCalculator-->>YearProcessor: RetirementDistributionResult
 ```
 
-The "strictly from spec" rule has a concrete failure scenario. Suppose a developer sees the component diagram and notices the RetirementDistributionCalculator doesn't show a dependency on tax bracket data. They know from reading the code that tax brackets are used in Roth conversion calculations. If Claude had invented that connection — "it makes sense that a retirement distribution calculator needs tax data" — the diagram would show a dependency that was never declared in the spec. Now the diagram is misleading: it shows something that exists in the implementation but was never specified. Future engineers read the diagram and believe the spec covers tax bracket dependencies. It doesn't.
+The "strictly from spec" rule has a concrete failure scenario. Suppose a developer sees the component diagram and notices the RetirementDistributionCalculator doesn't show a dependency on tax bracket data. They know from reading the code that tax brackets are used in Roth conversion calculations. If Claude had invented that connection, "it makes sense that a retirement distribution calculator needs tax data," the diagram would show a dependency that was never declared in the spec. Now the diagram is misleading: it shows something that exists in the implementation but was never specified. Future engineers read the diagram and believe the spec covers tax bracket dependencies. It doesn't.
 
-The Mermaid quoting rule is easy to state and annoying to debug when violated. Any node label or edge label containing special characters — `@`, `<`, `>`, `{`, `}`, `(`, `)`, `|`, `#` — must be double-quoted. The broken form and fixed form look nearly identical in source but produce very different rendered output:
+The Mermaid quoting rule is easy to state and annoying to debug when violated. Any node label or edge label containing special characters (`@`, `<`, `>`, `{`, `}`, `(`, `)`, `|`, `#`) must be double-quoted. The broken form and fixed form look nearly identical in source but produce very different rendered output:
 
 Broken: `A[ApiResponse<T>] --> B[Map{key,val}]`
 
@@ -743,13 +733,13 @@ Nine steps. Each produces something specific. Understanding what each step produ
 
 **Step 2: Resolve ASK items with the user.** The Haiku scan surfaced items needing a human decision. Some are clear violations the engineer will immediately agree to fix. Others are genuinely ambiguous: is this behavior truly out of scope, or does the engineer intend to specify it? Is this "for now" a deferral or an intended time-bound behavior? These decisions can't be automated. The engineer must answer them. Step 2 is a structured conversation that produces a resolution for every flagged item: either "this behavior will be specified here" (spec updated before review proceeds) or "this behavior is explicitly out of scope" (goes in OUT OF SCOPE (NON-GOALS) with rationale).
 
-**Step 3: Extract required behaviors.** With deferrals resolved, the reviewer extracts all behavioral requirements and writes them as Core Behaviors with IDs. Each is expressed as a testable statement. Design choices excluded. Implementation notes excluded. Only the behavioral contract — what the component does from the caller's perspective.
+**Step 3: Extract required behaviors.** With deferrals resolved, the reviewer extracts all behavioral requirements and writes them as Core Behaviors with IDs. Each is expressed as a testable statement. Design choices excluded. Implementation notes excluded. Only the behavioral contract: what the component does from the caller's perspective.
 
 **Step 4: Generate validation rules.** Extracted and structured separately from Core Behaviors. Each rule is explicit (specific values and conditions), enforceable (testable), includes error conditions (exception type and error code), and includes rejection cases. Validation rules only implied in the narrative are surfaced and converted to explicit rules or flagged for clarification.
 
 **Step 5: Generate acceptance tests.** Starting from Core Behaviors only: positive cases, negative cases, boundary cases, edge cases for each behavior. Expected outputs are deterministic, testable, and reproducible. No behavior goes untested. No test is generated for a behavior not in Core Behaviors.
 
-**Step 6: Validate no prohibited terms remain.** After the revision cycle — adding behaviors, restructuring narrative, moving content to OUT OF SCOPE — the prohibited term scan runs again. New deferrals sometimes enter specs during revision, usually through copy-paste from an earlier draft or from an engineer adding a comment that turns into a spec statement. The post-revision scan catches these.
+**Step 6: Validate no prohibited terms remain.** After the revision cycle (adding behaviors, restructuring narrative, moving content to OUT OF SCOPE) the prohibited term scan runs again. New deferrals sometimes enter specs during revision, usually through copy-paste from an earlier draft or from an engineer adding a comment that turns into a spec statement. The post-revision scan catches these.
 
 **Step 7: Architecture review.** Four checks:
 
@@ -759,7 +749,7 @@ Second, role verification: the `architecture_role` field must be specific enough
 
 Third, pipeline placement verification: the `data_flow_position` field must specify both what calls this component and what this component calls, creating a verifiable chain. "Called after income calculation" without specifying what calls it is a gap.
 
-Fourth, architecture_artifact flag verification: is the flag set correctly given the component type? A runner with `architecture_artifact: false` is suspicious — runners are inherently architectural because they orchestrate. A repository with `architecture_artifact: true` is a violation of the repository rule.
+Fourth, architecture_artifact flag verification: is the flag set correctly given the component type? A runner with `architecture_artifact: false` is suspicious. Runners are inherently architectural because they orchestrate. A repository with `architecture_artifact: true` is a violation of the repository rule.
 
 **Step 8: Generate diagrams where `architecture_artifact: true`.** For all specs where the flag is set, three diagrams are generated strictly from the spec's structured content: component diagram from dependencies, data flow diagram from inputs/outputs, sequence diagram for runners and orchestrators. No connections invented. No components inferred.
 
@@ -805,28 +795,10 @@ A task is complete only when:
 ```
 ---
 
-A spec passes review when all seven conditions are met. Each condition is binary. No partial credit. A spec that is 90% complete is not a complete spec — it's an incomplete spec that's mostly complete.
+A spec passes review when all seven conditions are met. Each condition is binary. No partial credit. A spec that is 90% complete is not a complete spec. It's an incomplete spec that's mostly complete. The conditions are straightforward: every behavior has an ID, every validation has error conditions, every behavior has tests, the traceability chain is complete, no deferral language remains, architecture metadata is validated, and diagrams exist where required. Each has already been covered in this chapter. The important thing is the binary gate.
 
-The seven conditions:
+Why no partial credit? Because partial credit creates the illusion of completeness. A spec that passes six of seven conditions looks like a reviewed spec. It gets frozen, implemented, and tested against an incomplete suite. The one failing condition surfaces in production, not during review. The binary gate means a spec either exits review ready for implementation or exits with a list of specific, actionable failures. No ambiguous middle ground.
 
-**1. All behaviors are implemented in the spec (not deferred).** Every behavior the system must exhibit is in Core Behaviors with a behavior ID. No behaviors described only in narrative. No behaviors marked TODO or deferred for a future version.
+This is the discipline that makes spec-first engineering work. Not the tool, not the model, not the workflow. The discipline of treating the spec as a contract and treating incomplete contracts as failures. The tool is the mechanism for applying that discipline consistently, without relying on any individual engineer's thoroughness on any given day.
 
-**2. All validations are implemented (not implied).** Every constraint on inputs is expressed as an explicit Validation Rule with error conditions and rejection cases. No validations described as assumptions ("the caller is expected to provide valid inputs").
-
-**3. All acceptance tests exist.** Every Core Behavior has acceptance tests covering all four test types. No behavior untested. No test generated for a non-existent behavior.
-
-**4. Traceability from behaviors to tests is complete.** The traceability matrix traces from every behavior ID to the test cases that cover it, and from every test case to the behavior ID it covers. No behavior traceable only to "general system tests." No test covers an unidentified behavior.
-
-**5. No deferral language is present.** The prohibited term scan finds zero matches across all sections of the spec. This includes narrative text, behavior descriptions, validation rules, and out-of-scope descriptions.
-
-**6. Architecture metadata is validated.** The metadata table is complete, all spec IDs in the dependencies list are resolvable, the component type matches the component's behavior, and the `architecture_artifact` flag is appropriate for the component type.
-
-**7. Diagrams are generated where required.** Every spec with `architecture_artifact: true` has all three diagrams. Complete (no missing nodes, no placeholder nodes), consistent with the metadata (every dependency in the diagram is in the dependency list), and syntactically correct Mermaid.
-
-Why is partial credit explicitly prohibited? Because partial credit creates the illusion of completeness. A spec that passes six of seven conditions looks like a reviewed spec. It will be treated as one. It will be frozen, implemented, and tested against an incomplete test suite. The one condition it failed won't be discovered until production. To the engineer who didn't do the failing review, it's indistinguishable from a fully reviewed spec — but it behaves like an unreviewed spec in production.
-
-The binary success condition means a spec either exits review ready for implementation or exits with a list of specific, actionable failures that must be resolved before the next pass. No ambiguous middle ground.
-
-This is the discipline that makes spec-first engineering work. Not the tool, not the model, not the workflow. The discipline of treating the spec as a contract and treating incomplete contracts as failures. The tool is just the mechanism for applying that discipline consistently, at scale, without relying on any individual engineer's thoroughness on any given day.
-
-The spec is the authority. The review is how you verify that the authority is authoritative. Everything else — implementation, testing, deployment — follows from that.
+The spec is the authority. The review verifies that the authority is authoritative. Everything downstream follows from that.
